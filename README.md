@@ -38,6 +38,18 @@ Writes `probes/probe_report.json` (gitignored). Review the console summary and t
 
 **Search note:** `/search` uses `types=` (not `filter.type`). Location filters must be `lat,lon`, not a city name.
 
+## CLI evaluate (Step 4)
+
+```powershell
+.\.venv\Scripts\activate
+python -m app evaluate -c "Cervejaria Ramiro" -c "The French Laundry" -s artist:Radiohead
+python -m app evaluate --json -c "Cervejaria Ramiro" -c "The French Laundry"
+# Equivalent: python -m app.cli evaluate ...
+```
+
+Prints `evaluation_status` (`completed` / `unavailable` / `partial`) and `policy_verdict` (`PASS` / `FAIL` only when completed).  
+Affinity cutoffs are **anchor-relative product policy** (default: beat 40% of in-city restaurant anchors).
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

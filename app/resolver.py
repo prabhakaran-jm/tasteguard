@@ -3,23 +3,16 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass, field
-from enum import Enum
 from typing import Any
 
 from app.category import is_restaurant_like, tag_names
 from app.config import Settings, get_settings
 from app.geo import LatLng, extract_address, extract_latlng, extract_locality, haversine_km, latlon_param
+from app.models import CandidateInput, EvidenceState
 from app.names import name_similarity
 from app.qloo_client import QlooClient
 
 logger = logging.getLogger(__name__)
-
-
-class EvidenceState(str, Enum):
-    VERIFIED = "verified"
-    MISMATCH = "mismatch"
-    NO_CONFIDENT_MATCH = "no_confident_match"
-    UNKNOWN = "unknown"
 
 
 @dataclass
@@ -32,14 +25,6 @@ class PlaceEntity:
     tags: list[str] = field(default_factory=list)
     is_restaurant: bool | None = None
     raw: dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class CandidateInput:
-    name: str
-    neighbourhood: str | None = None
-    address: str | None = None
-    notes: str | None = None
 
 
 @dataclass
