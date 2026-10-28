@@ -30,7 +30,16 @@ probes/probe_report.json
 .DS_Store
 agent-tools/
 
-# Frontend — commit sources + lockfile; build locally before Cloud Run upload
+# Frontend — commit sources + lockfile; build locally before image build
 web/node_modules/
 web/dist/
+
+# Terraform local state / secret var files (infra/.gitignore also covers these)
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.*
+infra/secrets.auto.tfvars
+infra/*.auto.tfvars
+!infra/terraform.tfvars.example
+
 

@@ -1,0 +1,13 @@
+project_id     = "tasteguard-qloo-2026"
+region         = "us-central1"
+service_name   = "tasteguard"
+min_instances  = 1
+max_instances  = 3
+
+# Set after Cloud Build push:
+# image = "us-central1-docker.pkg.dev/tasteguard-qloo-2026/tasteguard/tasteguard:latest"
+
+# Prefer: terraform apply -var-file=secrets.auto.tfvars
+# (gitignored) or pass -var on the CLI — never commit keys.
+# qloo_api_key   = "..."
+# gemini_api_key = "..."

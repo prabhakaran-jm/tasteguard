@@ -106,12 +106,41 @@ uvicorn app.main:app --port 8000
 
 Open `http://127.0.0.1:8000` — FastAPI serves `web/dist` after `/api/*`.
 
-### Cloud Run source upload
+### Cloud Run (Step 7 — Terraform)
 
-`web/dist` is **gitignored**. Build it locally before deploy. [`.gcloudignore`](.gcloudignore)
-is a denylist: it honors `.gitignore`, then re-admits `web/dist/**`, and excludes
-`web/node_modules/`. **Dry-run once before Day 3** and confirm `web/dist/index.html`
-is in the upload set (a missing dist only shows up as a blank live page).
+Project: `tasteguard-qloo-2026`. Image build uses **Cloud Build** (no local Docker
+required). SPA must be built first (`web/dist` is gitignored).
+
+```powershell
+# 1) SPA
+cd web
+npm run build
+cd ..
+
+# 2) Secrets file (gitignored) — paste keys from .env, never commit
+@"
+qloo_api_key   = `"YOUR_QLOO_KEY`"
+gemini_api_key = `"YOUR_GEMINI_KEY`"
+"@ | Set-Content infra\secrets.auto.tfvars
+
+# 3) Bootstrap APIs + Artifact Registry (+ secrets)
+cd infra
+terraform init
+terraform apply
+
+# 4) Build/push image
+$IMAGE = "us-central1-docker.pkg.dev/tasteguard-qloo-2026/tasteguard/tasteguard:latest"
+cd ..
+gcloud builds submit --config=cloudbuild.yaml --substitutions=_IMAGE=$IMAGE --project=tasteguard-qloo-2026
+
+# 5) Deploy Cloud Run
+cd infra
+terraform apply -var="image=$IMAGE"
+terraform output service_url
+```
+
+Infra lives in [`infra/`](infra/). Runtime secrets come from Secret Manager; the
+service is public (`roles/run.invoker` for `allUsers`) with `min_instances = 1`.
 
 ### React timebox (Day 2)
 

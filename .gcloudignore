@@ -1,25 +1,47 @@
-# Denylist: start from .gitignore, then carve back in web/dist for source deploys.
-# Dry-run before Day 3: gcloud meta list-files-for-upload --verbosity=info
-# (or: gcloud builds submit --dry-run) and confirm web/dist/index.html is listed.
+# Explicit denylist for Cloud Build (do not rely on git's bare `dist/` alone —
+# negation must re-admit parent dirs). Dry-run:
+#   gcloud meta list-files-for-upload . | findstr web\\dist
 
-.gitignore
-
-# Re-admit the prebuilt SPA (kept out of git; must ride along in the upload).
-!web/dist/
-!web/dist/**
-
-# Never ship the Node toolchain — hundreds of MB and unused at runtime.
-web/node_modules/
-web/node_modules/**
-
-# Local / agent noise
+.git/
 .cursor/
 .venv/
 venv/
-__pycache__/
+**/__pycache__/
 *.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.log
+agent-tools/
+
+# Secrets — never upload
 .env
 .env.*
 !.env.example
+infra/secrets.auto.tfvars
+infra/*.auto.tfvars
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.*
+
+# Node toolchain
+web/node_modules/
+**/node_modules/
+
+# SPA sources not needed in the image (dist is enough)
+web/src/
+web/public/
+web/*.json
+web/*.html
+web/*.ts
+web/*.md
+!web/dist/
+!web/dist/**
+
+# Probes / recordings
 probes/probe_report.json
-*.log
+recorded/*
+
+# Local Python build crumbs
+build/
+*.egg-info/

@@ -1,0 +1,10 @@
+# Build/push TasteGuard image. Substitution _IMAGE is required, e.g.:
+# us-central1-docker.pkg.dev/PROJECT/tasteguard/tasteguard:latest
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: ["build", "-t", "${_IMAGE}", "."]
+  - name: gcr.io/cloud-builders/docker
+    args: ["push", "${_IMAGE}"]
+images:
+  - "${_IMAGE}"
+timeout: 1200s
