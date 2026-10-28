@@ -13,7 +13,7 @@ web/node_modules
 web/src
 web/public
 probes/probe_report.json
-recorded
+# Keep recorded/*.json fixtures in the image (recorded mode).
 infra/.terraform
 infra/*.tfstate*
 infra/.terraform.lock.hcl
