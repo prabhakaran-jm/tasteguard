@@ -16,14 +16,27 @@ Foundation scaffold only. Application modules land in later steps.
 
 ## Setup (local)
 
-```bash
+```powershell
 python -m venv .venv
-# Windows: .venv\Scripts\activate
-# macOS/Linux: source .venv/bin/activate
+.\.venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env
-# Edit .env and set QLOO_API_KEY and GEMINI_API_KEY
+copy .env.example .env
+# Edit .env and set QLOO_API_KEY (and later GEMINI_API_KEY)
 ```
+
+## Run Day-1 Qloo probes
+
+Requires a valid hackathon key in `.env` (`QLOO_API_KEY`).  
+Uses `https://hackathon.api.qloo.com` with the `X-Api-Key` header.
+
+```powershell
+.\.venv\Scripts\activate
+python probes\run_probes.py
+```
+
+Writes `probes/probe_report.json` (gitignored). Review the console summary and the JSON before locking any scoring policy.
+
+**Search note:** `/search` uses `types=` (not `filter.type`). Location filters must be `lat,lon`, not a city name.
 
 ## License
 
