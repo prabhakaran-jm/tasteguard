@@ -60,7 +60,7 @@ export function Hero({
               onClick={onRecorded}
               disabled={running || !presetId}
             >
-              {running ? 'Running…' : 'Play recorded run'}
+              {running ? 'Running…' : 'Play illustrative run'}
             </button>
           ) : null}
           <button

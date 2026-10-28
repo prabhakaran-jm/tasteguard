@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     port: int = 8765
 
     near_radius_km: float = 15.0
+    # Alternatives must be closer-in; suburbs like Alfornelos fail this gate.
+    alt_radius_km: float = 10.0
     far_radius_km: float = 80.0
     name_similarity_threshold: float = 0.72
 
@@ -27,6 +29,8 @@ class Settings(BaseSettings):
     anchor_target: int = 30
     # Relative position among anchors (product policy; calibrate after probes).
     allow_anchor_percentile: float = 0.40
+    # Soft band: within this of the cutoff → ALLOW with a borderline note.
+    allow_borderline_band: float = 0.05
 
     daily_call_cap: int = 200
     per_ip_hourly_cap: int = 30

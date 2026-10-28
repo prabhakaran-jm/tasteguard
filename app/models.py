@@ -46,6 +46,10 @@ class CandidateInput(BaseModel):
     neighbourhood: str | None = Field(default=None, max_length=80)
     address: str | None = Field(default=None, max_length=160)
     notes: str | None = Field(default=None, max_length=200)
+    # When set (repair keep/replace), skip name search and trust this Qloo entity.
+    entity_id: str | None = Field(default=None, max_length=80)
+    pinned_distance_km: float | None = None
+    pinned_locality: str | None = Field(default=None, max_length=80)
 
     @field_validator("name", mode="before")
     @classmethod
@@ -117,3 +121,5 @@ class EvaluateRequest(BaseModel):
     fetch_alternatives: bool = True
     # When set (repair), PASS requires this many candidates — shorter lists fail closed.
     expected_count: int | None = Field(default=None, ge=1, le=8)
+    # Entity IDs already tried in prior repair rounds — excluded from the alt pool.
+    exclude_entity_ids: list[str] = Field(default_factory=list)

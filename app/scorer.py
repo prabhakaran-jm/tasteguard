@@ -26,6 +26,9 @@ logger = logging.getLogger(__name__)
 # Probe: sent 40 IDs, got 30 back — keep shared-pool requests within this budget.
 MAX_FILTER_RESULTS_IDS = 30
 
+# Stable per-city restaurant anchor IDs (filled on first successful build).
+_ANCHOR_ID_CACHE: dict[str, list[str]] = {}
+
 
 def summarize_explainability(
     contrib: dict[str, float],
@@ -58,8 +61,24 @@ class AnchorScorer:
         Intentionally does **not** pass persona signals — otherwise Insights
         returns the high-affinity tail and every real Gemini pick scores pct=0.
         Persona signals are applied later in ``score_shared_pool``.
+
+        Anchor entity IDs are cached per city so relative percentiles stay stable
+        across runs in the same process.
         """
         _ = signal_entities  # kept for call-site compatibility
+        cache_key = city.strip().casefold()
+        cached = _ANCHOR_ID_CACHE.get(cache_key)
+        if cached and len(cached) >= self.settings.anchor_floor:
+            return [
+                PlaceEntity(
+                    entity_id=eid,
+                    name="",
+                    location=None,
+                    is_restaurant=True,
+                )
+                for eid in cached
+            ]
+
         anchors: list[PlaceEntity] = []
         seen: set[str] = set()
         # Broader popularity bands + more pages to survive strict restaurant filter
@@ -116,6 +135,8 @@ class AnchorScorer:
                         break
             except QlooError as exc:
                 logger.warning("anchor search fallback failed: %s", exc)
+        if len(anchors) >= self.settings.anchor_floor:
+            _ANCHOR_ID_CACHE[cache_key] = [a.entity_id for a in anchors]
         return anchors
 
     def _restaurant_near(
@@ -241,17 +262,23 @@ class AnchorScorer:
             reasons.append("Evaluation not completed — informational only")
             return ItemVerdict.UNKNOWN, affinity, None, reasons
         if affinity is None:
-            name = hit.entity.name if hit.entity else "Place"
-            reasons.append(f"{name}: Qloo returned no taste score")
+            reasons.append("Qloo returned no taste score — unscored")
             return ItemVerdict.UNKNOWN, None, None, reasons
 
         percentile = self.relative_percentile(affinity, anchor_affinities)
         cutoff = self.settings.allow_anchor_percentile
+        band = self.settings.allow_borderline_band
         if percentile >= cutoff:
             return ItemVerdict.ALLOW, affinity, percentile, reasons
+        if percentile >= cutoff - band:
+            reasons.append(
+                f"Borderline taste fit: beats {percentile:.0%} of in-city restaurant "
+                f"anchors (cutoff {cutoff:.0%} ± {band:.0%}) — allowed with note"
+            )
+            return ItemVerdict.ALLOW, affinity, percentile, reasons
         reasons.append(
-            f"Below allow cutoff among in-city restaurant anchors "
-            f"(stronger than {percentile:.0%} < required {cutoff:.0%})"
+            f"Beats {percentile:.0%} of in-city restaurant anchors "
+            f"(needs {cutoff:.0%})"
         )
         return ItemVerdict.REWRITE, affinity, percentile, reasons
 
@@ -263,19 +290,20 @@ class AnchorScorer:
         signal_entities: list[str],
         exclude_ids: list[str],
         id_labels: dict[str, str] | None = None,
-        take: int = 12,
+        take: int = 24,
     ) -> list[Alternative]:
-        """Persona-ranked restaurant alternatives (signals ON; category filter strict)."""
+        """Persona-ranked restaurant alternatives (signals ON; category+geo gates)."""
         exclude = set(exclude_ids)
+        alt_radius = self.settings.alt_radius_km
         raw_rows: list[dict[str, Any]] = []
         # Over-fetch + page: strict restaurant filter drops museums/cultural casas.
-        for page in (1, 2, 3):
-            if len(raw_rows) >= take * 4:
+        for page in (1, 2, 3, 4):
+            if len(raw_rows) >= take * 5:
                 break
             payload = await self._alts_insights(
                 city=city,
                 signal_entities=signal_entities,
-                exclude_ids=exclude_ids,
+                exclude_ids=list(exclude),
                 take=50,
                 page=page,
                 with_radius_zero=True,
@@ -284,7 +312,7 @@ class AnchorScorer:
                 payload = await self._alts_insights(
                     city=city,
                     signal_entities=signal_entities,
-                    exclude_ids=exclude_ids,
+                    exclude_ids=list(exclude),
                     take=50,
                     page=1,
                     with_radius_zero=False,
@@ -305,7 +333,7 @@ class AnchorScorer:
             if loc is None:
                 continue
             dist = haversine_km(city_center, loc)
-            if dist > self.settings.near_radius_km:
+            if dist > alt_radius:
                 continue
             eid = str(raw.get("entity_id") or raw.get("id") or "")
             if not eid or eid in exclude or eid in seen:
@@ -329,7 +357,7 @@ class AnchorScorer:
                 break
         if not alts:
             logger.warning(
-                "No restaurant-like alternatives after category filter for city=%s",
+                "No restaurant-like alternatives after category/geo filter for city=%s",
                 city,
             )
         return alts

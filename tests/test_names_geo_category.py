@@ -110,3 +110,84 @@ def test_prado_does_not_perfect_match_prado_wine_bar():
 
 def test_invented_casa_does_not_confident_match_faia():
     assert name_similarity("Casa Azul da Lua Fictícia", "O Faia - Casa de Fado") < 0.72
+
+
+def test_coffee_library_rejected_from_dinner_pool():
+    assert not is_restaurant_like(
+        {
+            "name": "The Coffee Library in The Hood",
+            "properties": {"primary_genre": "Cafe"},
+            "tags": [{"name": "Cafe"}, {"name": "Coffee"}],
+        }
+    )
+
+
+def test_join_messages_no_double_punctuation():
+    from app.service import _join_messages
+
+    msg = _join_messages(
+        [
+            "Unverified items stay on the card as kept/unverified.",
+            "Repair picks only from the Qloo restaurant alternative pool.",
+        ]
+    )
+    assert msg is not None
+    assert ".;" not in msg
+    assert msg.count(".") >= 1
+
+
+def test_borderline_band_allows_near_cutoff():
+    from app.config import Settings
+    from app.models import EvaluationStatus, EvidenceState, ItemVerdict
+    from app.resolver import PlaceEntity, ResolveHit
+    from app.scorer import AnchorScorer
+
+    settings = Settings(allow_anchor_percentile=0.40, allow_borderline_band=0.05)
+    scorer = AnchorScorer(qloo=None, settings=settings)  # type: ignore[arg-type]
+    hit = ResolveHit(
+        evidence=EvidenceState.VERIFIED,
+        entity=PlaceEntity(
+            entity_id="x",
+            name="Test",
+            location=None,
+            is_restaurant=True,
+        ),
+        distance_km=1.0,
+        similarity=1.0,
+        reasons=["ok"],
+    )
+    # 38% is within 40% ± 5% → ALLOW with note
+    verdict, _, pct, reasons = scorer.item_from_resolve_and_score(
+        hit=hit,
+        scored={"affinity": 0.5, "summary": None},
+        anchor_affinities=[0.9] * 31 + [0.4] * 19,  # beats 19/50 = 0.38
+        evaluation_status=EvaluationStatus.COMPLETED,
+    )
+    assert pct is not None and 0.35 <= pct <= 0.40
+    assert verdict == ItemVerdict.ALLOW
+    assert any("Borderline" in r for r in reasons)
+
+
+def test_nyc_preset_uses_new_york_not_lisbon():
+    from app.presets import get_preset
+
+    nyc = get_preset("radiohead-nyc")
+    assert nyc is not None
+    assert nyc["city"] == "New York"
+    assert nyc["city_center"]["lat"] == 40.7128
+    lisbon = get_preset("radiohead-lisbon")
+    assert lisbon is not None
+    assert lisbon["city"] == "Lisbon"
+    assert len(nyc["seed_queries"]) >= 3
+    assert len(lisbon["seed_queries"]) >= 3
+
+
+def test_stress_inject_claims_lisbon_neighbourhoods():
+    from app.presets import get_preset, inject_candidates
+
+    preset = get_preset("stress-lisbon-live")
+    assert preset is not None
+    cands = inject_candidates(preset)
+    paris = next(c for c in cands if "Comptoir" in c.name)
+    assert paris.neighbourhood == "Chiado"
+    assert "Paris" not in (paris.neighbourhood or "")

@@ -70,6 +70,27 @@ class PlaceResolver:
         city_label: str,
         city_center: LatLng,
     ) -> ResolveHit:
+        # Repair path: trust a pool entity that already passed category/geo gates.
+        if candidate.entity_id:
+            place = PlaceEntity(
+                entity_id=candidate.entity_id,
+                name=candidate.name,
+                location=None,
+                address=candidate.address,
+                locality=candidate.pinned_locality or candidate.neighbourhood,
+                is_restaurant=True,
+            )
+            return ResolveHit(
+                evidence=EvidenceState.VERIFIED,
+                entity=place,
+                distance_km=candidate.pinned_distance_km,
+                similarity=1.0,
+                reasons=[
+                    f"Pinned Qloo restaurant '{candidate.name}' "
+                    f"(entity {candidate.entity_id[:8]}…)"
+                ],
+            )
+
         radius_miles = max(self.settings.near_radius_km / 1.609, 5.0)
         async with self._sem:
             local = await self.qloo.search(
@@ -128,15 +149,16 @@ class PlaceResolver:
         if remote:
             place, sim, dist = remote[0]
             neighbourhood = candidate.neighbourhood or candidate.address or "unspecified"
+            dist_txt = f"{dist:.0f}" if dist >= 100 else f"{dist:.1f}"
+            locality = place.locality or place.address or "unknown locality"
             return ResolveHit(
                 evidence=EvidenceState.MISMATCH,
                 entity=place,
                 distance_km=dist,
                 similarity=sim,
                 reasons=[
-                    f"Gemini said {neighbourhood} / {city_label}; Qloo places "
-                    f"'{place.name}' {dist:.1f} km away "
-                    f"({place.locality or place.address or 'unknown locality'})",
+                    f"Claimed {neighbourhood}; Qloo places '{place.name}' "
+                    f"{dist_txt} km away in {locality}",
                     "No in-city name match found",
                 ],
             )

@@ -7,6 +7,14 @@ from app.models import CandidateInput
 
 PresetKind = Literal["recorded", "stress", "live"]
 
+# Multi-seed personas so explainability contributions vary card-to-card.
+_RADIOHEAD_ARTSY_SEEDS = [
+    {"query": "Radiohead", "types": "urn:entity:artist"},
+    {"query": "There Will Be Blood", "types": "urn:entity:movie"},
+    {"query": "Norwegian Wood", "types": "urn:entity:book"},
+    {"query": "Aesop", "types": "urn:entity:brand"},
+]
+
 
 PRESETS: dict[str, dict[str, Any]] = {
     # Default judge path — always shows wrong-city + invent catches (no live Gemini).
@@ -17,17 +25,15 @@ PRESETS: dict[str, dict[str, Any]] = {
         "city": "Lisbon",
         "city_center": {"lat": 38.7223, "lon": -9.1393},
         "persona": (
-            "Indie / artsy palate; prefers thoughtful local dining. "
-            "Affinity leans toward Radiohead."
+            "Indie / artsy palate; thoughtful local dining. Seeds: Radiohead, "
+            "There Will Be Blood, Norwegian Wood, Aesop."
         ),
-        "seed_queries": [
-            {"query": "Radiohead", "types": "urn:entity:artist"},
-        ],
+        "seed_queries": list(_RADIOHEAD_ARTSY_SEEDS),
         "n": 5,
         "recorded_path": "recorded/stress-lisbon.json",
         "blurb": (
-            "Fixed card: two good Lisbon picks, a Paris restaurant, a Cascais "
-            "restaurant, and an invented name — so TasteGuard’s catch always runs."
+            "Illustrative example of the catch card (wrong-city + invented name → "
+            "repair). Re-record from live after the repair path is solid."
         ),
     },
     # Same inject list, live Qloo evaluate (burns quota; labelled honestly).
@@ -38,29 +44,22 @@ PRESETS: dict[str, dict[str, Any]] = {
         "city": "Lisbon",
         "city_center": {"lat": 38.7223, "lon": -9.1393},
         "persona": (
-            "Indie / artsy palate; prefers thoughtful local dining. "
-            "Affinity leans toward Radiohead."
+            "Indie / artsy palate; thoughtful local dining. Seeds: Radiohead, "
+            "There Will Be Blood, Norwegian Wood, Aesop."
         ),
-        "seed_queries": [
-            {"query": "Radiohead", "types": "urn:entity:artist"},
-        ],
+        "seed_queries": list(_RADIOHEAD_ARTSY_SEEDS),
         "n": 5,
         "inject_candidates": [
             {"name": "Prado", "neighbourhood": "Sé"},
             {"name": "O Velho Eurico", "neighbourhood": "Mouraria"},
-            {
-                "name": "Le Comptoir du Relais",
-                "neighbourhood": "6th arrondissement, Paris",
-            },
-            {"name": "Fortaleza do Guincho", "neighbourhood": "Cresmina, Cascais"},
-            {
-                "name": "Casa Azul da Lua Fictícia",
-                "neighbourhood": "Alfama",
-            },
+            # Claim Lisbon neighbourhoods so the wrong-city catch is a real reveal.
+            {"name": "Le Comptoir du Relais", "neighbourhood": "Chiado"},
+            {"name": "Fortaleza do Guincho", "neighbourhood": "Bairro Alto"},
+            {"name": "Casa Azul da Lua Fictícia", "neighbourhood": "Alfama"},
         ],
         "blurb": (
-            "Does not call Gemini. Injects known wrong-city and invented names, "
-            "then runs live Qloo evaluate + repair."
+            "Does not call Gemini. Injects known wrong-city and invented names "
+            "(labelled as an injected test list), then runs live Qloo evaluate + repair."
         ),
     },
     "radiohead-nyc": {
@@ -71,11 +70,10 @@ PRESETS: dict[str, dict[str, Any]] = {
         "city_center": {"lat": 40.7128, "lon": -74.0060},
         "persona": (
             "Indie / artsy palate in New York; thoughtful local dining, "
-            "not tourist traps. Affinity leans toward Radiohead."
+            "not tourist traps. Seeds: Radiohead, There Will Be Blood, "
+            "Norwegian Wood, Aesop."
         ),
-        "seed_queries": [
-            {"query": "Radiohead", "types": "urn:entity:artist"},
-        ],
+        "seed_queries": list(_RADIOHEAD_ARTSY_SEEDS),
         "n": 5,
         "blurb": "Honest live Gemini → TasteGuard path for New York.",
     },
@@ -87,11 +85,10 @@ PRESETS: dict[str, dict[str, Any]] = {
         "city_center": {"lat": 38.7223, "lon": -9.1393},
         "persona": (
             "Indie / artsy palate; prefers thoughtful local dining, "
-            "not tourist traps. Affinity leans toward Radiohead."
+            "not tourist traps. Seeds: Radiohead, There Will Be Blood, "
+            "Norwegian Wood, Aesop."
         ),
-        "seed_queries": [
-            {"query": "Radiohead", "types": "urn:entity:artist"},
-        ],
+        "seed_queries": list(_RADIOHEAD_ARTSY_SEEDS),
         "n": 5,
         "blurb": (
             "Honest live run. At temperature 0 Gemini often picks good Lisbon "

@@ -63,6 +63,9 @@ class EvaluateBody(BaseModel):
                     neighbourhood=_clip(c.neighbourhood, 80),
                     address=_clip(c.address, 160),
                     notes=_clip(c.notes, 200),
+                    entity_id=_clip(c.entity_id, 80),
+                    pinned_distance_km=c.pinned_distance_km,
+                    pinned_locality=_clip(c.pinned_locality, 80),
                 )
             )
         if not cleaned:

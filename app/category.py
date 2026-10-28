@@ -66,6 +66,8 @@ HARD_REJECT_NAME = {
     "theatre",
     "theater",
     "teatro",
+    "library",
+    "coffee library",
 }
 
 # Cafe/bar alone is not enough for a dinner list when the venue reads as lodging.
@@ -128,6 +130,12 @@ def is_restaurant_like(entity: dict[str, Any]) -> bool:
         h in genre for h in LODGING_HINTS
     )
     if lodging and "restaurant" not in name and "restaurant" not in genre:
+        return False
+
+    # Coffee shops / libraries are not dinner restaurants.
+    if "library" in name:
+        return False
+    if "coffee" in name and "restaurant" not in name and "restaurant" not in genre:
         return False
     return True
 

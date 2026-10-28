@@ -191,7 +191,10 @@ export default function App() {
       {showDemo ? (
         <main className="demo" ref={demoRef}>
           <p className="run-mode">
-            {mode === 'recorded' ? 'Recorded demo' : 'Live run'} · {selected?.city}
+            {mode === 'recorded'
+              ? 'Illustrative example (not a live capture)'
+              : 'Live run'}{' '}
+            · {selected?.city}
           </p>
           {selected ? (
             <p className="persona-line">
@@ -206,16 +209,21 @@ export default function App() {
           {hidePerCardExplain && (evalResult || repairFinal) ? (
             <p className="explain-banner">
               Qloo did not return per-item explainability contributions for this run.
-              Cards show taste fit vs Lisbon dinner anchors instead — not invented
-              explanations.
+              Cards show taste fit vs {selected?.city || 'city'} reference restaurants
+              instead — not invented explanations.
             </p>
           ) : null}
 
           <div className="compare-row">
             <StageCards
-              stageLabel="Gemini Flash, no tools"
+              stageLabel={
+                selected?.kind === 'stress' || selected?.kind === 'recorded'
+                  ? 'Injected test list (not Gemini)'
+                  : 'Gemini Flash, no tools'
+              }
               places={proposed || undefined}
               loading={stageBusy === 'propose'}
+              city={selected?.city}
             />
             <StageCards
               stageLabel="TasteGuard"
@@ -223,6 +231,7 @@ export default function App() {
               loading={stageBusy === 'evaluate'}
               loadingCount={proposed?.length || 5}
               showExplainability={!hidePerCardExplain}
+              city={evalResult?.city || selected?.city}
             />
           </div>
 
@@ -277,6 +286,7 @@ export default function App() {
                 stageLabel="Guarded recommendations"
                 scored={repairFinal.candidates}
                 showExplainability={!hidePerCardExplain}
+                city={repairFinal.city || selected?.city}
               />
             </div>
           ) : null}

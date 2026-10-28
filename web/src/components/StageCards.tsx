@@ -22,9 +22,17 @@ type Props = {
   loading?: boolean
   loadingCount?: number
   showExplainability?: boolean
+  city?: string
 }
 
-function plainEvidence(s: Scored, showExplainability: boolean): string {
+function formatDistance(km: number): string {
+  if (km >= 100) {
+    return `${Math.round(km).toLocaleString('en-US')} km away`
+  }
+  return `${km.toFixed(1)} km from centre`
+}
+
+function plainEvidence(s: Scored, showExplainability: boolean, city: string): string {
   const parts: string[] = []
   if (
     s.matched_name &&
@@ -39,14 +47,16 @@ function plainEvidence(s: Scored, showExplainability: boolean): string {
     parts.push('Wrong place or wrong city')
   }
   if (s.distance_km != null && !Number.isNaN(s.distance_km)) {
-    parts.push(`${s.distance_km.toFixed(1)} km from centre`)
+    parts.push(formatDistance(s.distance_km))
   }
   if (s.affinity != null && !Number.isNaN(s.affinity)) {
     parts.push(`Taste fit ${Math.round(s.affinity * 100)}`)
   }
   if (s.anchor_percentile != null && !Number.isNaN(s.anchor_percentile)) {
-    const topPct = Math.max(1, Math.round((1 - s.anchor_percentile) * 100))
-    parts.push(`top ${topPct}% vs Lisbon dinner anchors (allow ≥40th percentile)`)
+    const beats = Math.round(s.anchor_percentile * 100)
+    parts.push(
+      `Better taste match than ${beats}% of ${city} reference restaurants (needs 40%)`,
+    )
   }
   if (
     showExplainability &&
@@ -62,9 +72,10 @@ function plainEvidence(s: Scored, showExplainability: boolean): string {
   return parts.filter(Boolean).join(' · ') || 'Awaiting evidence'
 }
 
-function verdictLabel(v: string): string {
+function verdictLabel(v: string, reasons?: string[]): string {
   if (v === 'allow') return 'Allow'
   if (v === 'rewrite') return 'Rewrite'
+  if (reasons?.some((r) => /unscored|no taste score/i.test(r))) return 'Unscored'
   return 'Unverified'
 }
 
@@ -75,6 +86,7 @@ export function StageCards({
   loading,
   loadingCount = 5,
   showExplainability = true,
+  city = 'in-city',
 }: Props) {
   return (
     <section className="stage-block">
@@ -95,11 +107,13 @@ export function StageCards({
                 <div className="card-top">
                   <h3 className="place-name">{s.input.name}</h3>
                   <span className={`verdict-chip ${s.item_verdict}`}>
-                    {verdictLabel(s.item_verdict)}
+                    {verdictLabel(s.item_verdict, s.reasons)}
                   </span>
                 </div>
                 <p className="place-meta">{s.input.neighbourhood || '—'}</p>
-                <p className="place-evidence">{plainEvidence(s, showExplainability)}</p>
+                <p className="place-evidence">
+                  {plainEvidence(s, showExplainability, city)}
+                </p>
               </article>
             ))
           : null}
