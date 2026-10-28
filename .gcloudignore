@@ -38,9 +38,11 @@ web/*.md
 !web/dist/
 !web/dist/**
 
-# Probes / recordings
+# Probes / recordings (keep checked JSON fixtures for recorded mode)
 probes/probe_report.json
 recorded/*
+!recorded/
+!recorded/*.json
 
 # Local Python build crumbs
 build/

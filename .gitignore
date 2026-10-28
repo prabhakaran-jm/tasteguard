@@ -25,6 +25,7 @@ build/
 # Runtime / demo artifacts
 recorded/*
 !recorded/.gitkeep
+!recorded/*.json
 probes/probe_report.json
 *.log
 .DS_Store

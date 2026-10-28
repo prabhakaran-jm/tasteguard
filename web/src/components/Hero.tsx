@@ -1,12 +1,32 @@
-type Props = {
-  presets: { id: string; label: string }[]
-  presetId: string
-  onPresetChange: (id: string) => void
-  onRun: () => void
-  running: boolean
+type Preset = {
+  id: string
+  label: string
+  kind?: string
+  blurb?: string
 }
 
-export function Hero({ presets, presetId, onPresetChange, onRun, running }: Props) {
+type Props = {
+  presets: Preset[]
+  presetId: string
+  onPresetChange: (id: string) => void
+  onRecorded: () => void
+  onLive: () => void
+  running: boolean
+  blurb?: string
+}
+
+export function Hero({
+  presets,
+  presetId,
+  onPresetChange,
+  onRecorded,
+  onLive,
+  running,
+  blurb,
+}: Props) {
+  const selected = presets.find((p) => p.id === presetId)
+  const isRecorded = selected?.kind === 'recorded'
+
   return (
     <header className="hero">
       <div className="hero-gradient" aria-hidden="true" />
@@ -16,6 +36,9 @@ export function Hero({ presets, presetId, onPresetChange, onRun, running }: Prop
           A cultural firewall for place agents — verify Gemini picks against
           Qloo taste, then repair from a closed restaurant pool.
         </p>
+        {blurb || selected?.blurb ? (
+          <p className="preset-blurb">{blurb || selected?.blurb}</p>
+        ) : null}
         <div className="cta-row">
           <select
             className="preset-select"
@@ -30,8 +53,23 @@ export function Hero({ presets, presetId, onPresetChange, onRun, running }: Prop
               </option>
             ))}
           </select>
-          <button className="cta" type="button" onClick={onRun} disabled={running || !presetId}>
-            {running ? 'Running…' : 'Run live demo'}
+          {isRecorded ? (
+            <button
+              className="cta"
+              type="button"
+              onClick={onRecorded}
+              disabled={running || !presetId}
+            >
+              {running ? 'Running…' : 'Play recorded run'}
+            </button>
+          ) : null}
+          <button
+            className={isRecorded ? 'cta cta-secondary' : 'cta'}
+            type="button"
+            onClick={onLive}
+            disabled={running || !presetId}
+          >
+            {running ? 'Running…' : 'Run live'}
           </button>
         </div>
       </div>

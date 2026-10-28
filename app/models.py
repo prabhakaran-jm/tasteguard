@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.geo import LatLng
 
@@ -32,11 +32,41 @@ class ItemVerdict(str, Enum):
     UNKNOWN = "unknown"
 
 
+def _clip_str(value: object, n: int) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    return text[:n]
+
+
 class CandidateInput(BaseModel):
-    name: str
-    neighbourhood: str | None = None
-    address: str | None = None
-    notes: str | None = None
+    name: str = Field(..., min_length=1, max_length=120)
+    neighbourhood: str | None = Field(default=None, max_length=80)
+    address: str | None = Field(default=None, max_length=160)
+    notes: str | None = Field(default=None, max_length=200)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def clip_name(cls, v: object) -> object:
+        clipped = _clip_str(v, 120)
+        return clipped if clipped is not None else v
+
+    @field_validator("neighbourhood", mode="before")
+    @classmethod
+    def clip_neighbourhood(cls, v: object) -> str | None:
+        return _clip_str(v, 80)
+
+    @field_validator("address", mode="before")
+    @classmethod
+    def clip_address(cls, v: object) -> str | None:
+        return _clip_str(v, 160)
+
+    @field_validator("notes", mode="before")
+    @classmethod
+    def clip_notes(cls, v: object) -> str | None:
+        return _clip_str(v, 200)
 
 
 class ScoredCandidate(BaseModel):
@@ -83,5 +113,7 @@ class EvaluateRequest(BaseModel):
     city: str
     city_center: LatLng
     seed_queries: list[dict[str, str]] = Field(default_factory=list)
-    candidates: list[CandidateInput]
+    candidates: list[CandidateInput] = Field(..., min_length=1, max_length=8)
     fetch_alternatives: bool = True
+    # When set (repair), PASS requires this many candidates — shorter lists fail closed.
+    expected_count: int | None = Field(default=None, ge=1, le=8)

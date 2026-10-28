@@ -237,18 +237,21 @@ class AnchorScorer:
             return ItemVerdict.UNKNOWN, None, None, reasons
 
         # verified
-        if affinity is None or evaluation_status != EvaluationStatus.COMPLETED:
-            reasons.append(
-                "Affinity unscored or evaluation not completed — informational only"
-            )
+        if evaluation_status != EvaluationStatus.COMPLETED:
+            reasons.append("Evaluation not completed — informational only")
             return ItemVerdict.UNKNOWN, affinity, None, reasons
+        if affinity is None:
+            name = hit.entity.name if hit.entity else "Place"
+            reasons.append(f"{name}: Qloo returned no taste score")
+            return ItemVerdict.UNKNOWN, None, None, reasons
 
         percentile = self.relative_percentile(affinity, anchor_affinities)
-        if percentile >= self.settings.allow_anchor_percentile:
+        cutoff = self.settings.allow_anchor_percentile
+        if percentile >= cutoff:
             return ItemVerdict.ALLOW, affinity, percentile, reasons
         reasons.append(
-            f"Below allow cutoff among anchors "
-            f"(percentile {percentile:.2f} < {self.settings.allow_anchor_percentile:.2f})"
+            f"Below allow cutoff among in-city restaurant anchors "
+            f"(stronger than {percentile:.0%} < required {cutoff:.0%})"
         )
         return ItemVerdict.REWRITE, affinity, percentile, reasons
 

@@ -5,6 +5,8 @@ import re
 from rapidfuzz import fuzz
 from unidecode import unidecode
 
+# Dining-type / article tokens stripped for identity. Keep "wine" — otherwise
+# "Prado" collapses to the same bag as "Prado Wine Bar".
 GENERIC_TOKENS = {
     "restaurant",
     "restaurante",
@@ -29,7 +31,6 @@ GENERIC_TOKENS = {
     "kitchen",
     "grill",
     "house",
-    "wine",  # too weak alone — "SEM … Wine Bar" vs "Little Wine Bar"
 }
 
 
@@ -45,11 +46,7 @@ def _tokens(normalized: str) -> list[str]:
 
 
 def _token_coverage(query_norm: str, candidate_norm: str) -> float:
-    """Fraction of all query tokens found in the candidate (any length).
-
-    Short brand tokens like "sem" must count — otherwise "SEM Wine Bar"
-    falsely matches "Little Wine Bar".
-    """
+    """Fraction of all query tokens found in the candidate (any length)."""
     q_tokens = _tokens(query_norm)
     if not q_tokens:
         return 0.0
@@ -58,11 +55,24 @@ def _token_coverage(query_norm: str, candidate_norm: str) -> float:
     return hits / len(q_tokens)
 
 
+def _extra_token_penalty(query_norm: str, candidate_norm: str) -> float:
+    """Penalize unmatched candidate tokens (Prado vs Prado Wine …)."""
+    q_tokens = _tokens(query_norm)
+    c_tokens = _tokens(candidate_norm)
+    if not q_tokens or not c_tokens:
+        return 0.0
+    q_set = set(q_tokens)
+    extras = [t for t in c_tokens if t not in q_set]
+    if not extras:
+        return 1.0
+    return len(q_tokens) / len(c_tokens)
+
+
 def name_similarity(a: str, b: str) -> float:
     """Conservative similarity for place identity.
 
-    Uses min(token_set, token_sort) × full token coverage so a single shared
-    weak word cannot pass the gate.
+    min(token_set, token_sort) × query coverage × extra-token penalty so a
+    one-word query cannot perfectly match a longer distinct venue name.
     """
     na, nb = normalize_name(a), normalize_name(b)
     if not na or not nb:
@@ -71,7 +81,8 @@ def name_similarity(a: str, b: str) -> float:
     sort_score = fuzz.token_sort_ratio(na, nb) / 100.0
     base = min(set_score, sort_score)
     coverage = _token_coverage(na, nb)
-    return base * coverage
+    penalty = _extra_token_penalty(na, nb)
+    return base * coverage * penalty
 
 
 def names_match(a: str, b: str, threshold: float) -> bool:

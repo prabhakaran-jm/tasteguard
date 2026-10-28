@@ -1,9 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Hero } from './components/Hero'
 import { StageCards } from './components/StageCards'
 import { StatusCard, kindFromEvaluation } from './components/StatusCard'
 
-type Preset = { id: string; label: string; city: string; persona: string }
+type Preset = {
+  id: string
+  label: string
+  city: string
+  persona: string
+  kind?: string
+  blurb?: string
+  default?: boolean
+}
 
 type Candidate = {
   name: string
@@ -25,9 +33,11 @@ type EvaluationResult = {
     affinity?: number | null
     anchor_percentile?: number | null
     explainability_summary?: string | null
+    reasons?: string[]
   }>
   message?: string | null
   anchor_count?: number
+  notes?: Record<string, unknown>
 }
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
@@ -48,10 +58,22 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>
 }
 
+function explanationsMissing(result: EvaluationResult | null): boolean {
+  if (!result?.candidates?.length) return false
+  return result.candidates.every(
+    (c) =>
+      !c.explainability_summary ||
+      c.explainability_summary === 'Explanation unavailable',
+  )
+}
+
 export default function App() {
   const [presets, setPresets] = useState<Preset[]>([])
   const [presetId, setPresetId] = useState('')
   const [running, setRunning] = useState(false)
+  const [stageBusy, setStageBusy] = useState<'propose' | 'evaluate' | 'repair' | null>(
+    null,
+  )
   const [error, setError] = useState<string | null>(null)
   const [mode, setMode] = useState<string>('live')
 
@@ -60,23 +82,38 @@ export default function App() {
   const [repairFinal, setRepairFinal] = useState<EvaluationResult | null>(null)
   const [repairHistoryLen, setRepairHistoryLen] = useState(0)
 
+  const demoRef = useRef<HTMLElement | null>(null)
+  const selected = presets.find((p) => p.id === presetId)
+
   useEffect(() => {
-    api<{ presets: Preset[]; mode: string }>('/api/presets')
+    api<{ presets: Preset[]; default_preset_id?: string }>('/api/presets')
       .then((data) => {
         setPresets(data.presets)
-        setMode(data.mode)
-        if (data.presets[0]) setPresetId(data.presets[0].id)
+        const def =
+          data.presets.find((p) => p.default)?.id ||
+          data.default_preset_id ||
+          data.presets[0]?.id ||
+          ''
+        setPresetId(def)
       })
       .catch((err: Error) => setError(err.message))
   }, [])
 
-  async function runDemo() {
+  function scrollToDemo() {
+    requestAnimationFrame(() => {
+      demoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
+
+  async function runPipeline(forceLive: boolean) {
     setRunning(true)
     setError(null)
     setProposed(null)
     setEvalResult(null)
     setRepairFinal(null)
     setRepairHistoryLen(0)
+    setStageBusy('propose')
+    scrollToDemo()
 
     try {
       const propose = await api<{
@@ -84,10 +121,12 @@ export default function App() {
         candidates: Candidate[]
       }>('/api/propose', {
         method: 'POST',
-        body: JSON.stringify({ preset_id: presetId }),
+        body: JSON.stringify({ preset_id: presetId, force_live: forceLive }),
       })
       setMode(propose.mode)
       setProposed(propose.candidates)
+      setStageBusy('evaluate')
+      scrollToDemo()
 
       const evaluated = await api<{
         mode: string
@@ -98,6 +137,7 @@ export default function App() {
         body: JSON.stringify({
           preset_id: presetId,
           candidates: propose.candidates,
+          force_live: forceLive,
         }),
       })
       setMode(evaluated.mode)
@@ -107,6 +147,7 @@ export default function App() {
         evaluated.result.evaluation_status === 'completed' &&
         evaluated.result.policy_verdict === 'FAIL'
       ) {
+        setStageBusy('repair')
         const repaired = await api<{
           mode: string
           final: EvaluationResult
@@ -122,11 +163,19 @@ export default function App() {
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
+      setStageBusy(null)
       setRunning(false)
     }
   }
 
-  const showDemo = proposed || evalResult || repairFinal || error
+  const showDemo = proposed || evalResult || repairFinal || error || stageBusy
+  const hidePerCardExplain =
+    explanationsMissing(evalResult) && explanationsMissing(repairFinal || evalResult)
+
+  const repairNote =
+    (repairFinal?.notes?.replaced as string[] | undefined)?.join('; ') ||
+    repairFinal?.message ||
+    null
 
   return (
     <>
@@ -134,55 +183,83 @@ export default function App() {
         presets={presets}
         presetId={presetId}
         onPresetChange={setPresetId}
-        onRun={runDemo}
+        onRecorded={() => runPipeline(false)}
+        onLive={() => runPipeline(true)}
         running={running}
       />
 
       {showDemo ? (
-        <main className="demo">
+        <main className="demo" ref={demoRef}>
+          <p className="run-mode">
+            {mode === 'recorded' ? 'Recorded demo' : 'Live run'} · {selected?.city}
+          </p>
+          {selected ? (
+            <p className="persona-line">
+              <strong>Who this is for:</strong> {selected.persona}
+            </p>
+          ) : null}
+
           {error ? (
+            <StatusCard kind="error" title="Error" body={error} />
+          ) : null}
+
+          {hidePerCardExplain && (evalResult || repairFinal) ? (
+            <p className="explain-banner">
+              Qloo did not return per-item explainability contributions for this run.
+              Cards show taste fit vs Lisbon dinner anchors instead — not invented
+              explanations.
+            </p>
+          ) : null}
+
+          <div className="compare-row">
+            <StageCards
+              stageLabel="Gemini Flash, no tools"
+              places={proposed || undefined}
+              loading={stageBusy === 'propose'}
+            />
+            <StageCards
+              stageLabel="TasteGuard"
+              scored={evalResult?.candidates}
+              loading={stageBusy === 'evaluate'}
+              loadingCount={proposed?.length || 5}
+              showExplainability={!hidePerCardExplain}
+            />
+          </div>
+
+          {evalResult ? (
             <StatusCard
-              kind="error"
-              title="Error"
-              body={error}
-              mode={mode}
+              kind={kindFromEvaluation(
+                evalResult.evaluation_status,
+                evalResult.policy_verdict,
+              )}
+              title={
+                evalResult.evaluation_status === 'completed'
+                  ? evalResult.policy_verdict || 'FAIL'
+                  : evalResult.evaluation_status.toUpperCase()
+              }
+              body={
+                evalResult.message ||
+                `${evalResult.city} · ${evalResult.anchor_count ?? 0} anchors`
+              }
             />
           ) : null}
 
-          {proposed ? (
-            <StageCards stageLabel="Stage 1 · Unguarded Gemini" places={proposed} />
-          ) : null}
-
-          {evalResult ? (
-            <>
-              <StatusCard
-                kind={kindFromEvaluation(
-                  evalResult.evaluation_status,
-                  evalResult.policy_verdict,
-                )}
-                title={
-                  evalResult.evaluation_status === 'completed'
-                    ? evalResult.policy_verdict || 'FAIL'
-                    : evalResult.evaluation_status.toUpperCase()
-                }
-                body={
-                  evalResult.message ||
-                  `${evalResult.city} · ${evalResult.anchor_count ?? 0} anchors · ${evalResult.evaluation_status}`
-                }
-                mode={mode}
-              />
-              <StageCards
-                stageLabel="Stage 2 · TasteGuard verdict"
-                scored={evalResult.candidates}
-              />
-            </>
+          {stageBusy === 'repair' ? (
+            <StageCards
+              stageLabel="Repair in progress"
+              loading
+              loadingCount={proposed?.length || 5}
+            />
           ) : null}
 
           {repairFinal ? (
             <div className="repair-strip">
-              <h3>Stage 3 · Closed-set repair</h3>
+              <h3>After repair</h3>
               <p className="history-note">
-                History length {repairHistoryLen} (unguarded snapshot + repair rounds)
+                {repairNote ||
+                  (repairHistoryLen > 1
+                    ? `Repaired in ${repairHistoryLen - 1} round${repairHistoryLen - 1 === 1 ? '' : 's'}`
+                    : 'No repair needed')}
               </p>
               <StatusCard
                 kind={kindFromEvaluation(
@@ -194,20 +271,32 @@ export default function App() {
                     ? repairFinal.policy_verdict || 'FAIL'
                     : repairFinal.evaluation_status.toUpperCase()
                 }
-                body={
-                  repairFinal.message ||
-                  `Repaired card · ${repairFinal.evaluation_status}`
-                }
-                mode={mode}
+                body={repairFinal.message || 'Guarded recommendations'}
               />
               <StageCards
                 stageLabel="Guarded recommendations"
                 scored={repairFinal.candidates}
+                showExplainability={!hidePerCardExplain}
               />
             </div>
           ) : null}
         </main>
       ) : null}
+
+      <footer className="site-footer">
+        <p>
+          <a href="https://github.com/prabhakaran-jm/tasteguard">GitHub</a>
+          {' · '}
+          How it works: Gemini proposes → Qloo verifies place + taste → closed-set
+          repair
+          {' · '}
+          Powered by Qloo taste graph
+        </p>
+        <p className="disclaimer">
+          Affinity cutoffs are product policy showing agreement with Qloo’s
+          benchmark — not an official Qloo recommendation.
+        </p>
+      </footer>
     </>
   )
 }

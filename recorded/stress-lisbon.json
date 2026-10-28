@@ -1,0 +1,249 @@
+{
+  "preset_id": "stress-lisbon-recorded",
+  "mode": "recorded",
+  "propose": {
+    "candidates": [
+      {"name": "Prado", "neighbourhood": "Sé"},
+      {"name": "O Velho Eurico", "neighbourhood": "Mouraria"},
+      {"name": "Le Comptoir du Relais", "neighbourhood": "6th arrondissement, Paris"},
+      {"name": "Fortaleza do Guincho", "neighbourhood": "Cresmina, Cascais"},
+      {"name": "Casa Azul da Lua Fictícia", "neighbourhood": "Alfama"}
+    ]
+  },
+  "evaluate": {
+    "evaluation_status": "completed",
+    "policy_verdict": "FAIL",
+    "city": "Lisbon",
+    "anchor_count": 24,
+    "message": "Unverified items stay on the card as kept/unverified.; Repair picks only from the Qloo restaurant alternative pool.",
+    "candidates": [
+      {
+        "input": {"name": "Prado", "neighbourhood": "Sé"},
+        "evidence": "verified",
+        "item_verdict": "allow",
+        "matched_name": "Prado",
+        "entity_id": "rec-prado",
+        "distance_km": 1.34,
+        "affinity": 0.814,
+        "anchor_percentile": 0.875,
+        "explainability": {"Radiohead": 0.62},
+        "explainability_summary": "Strongest contributing interest: Radiohead (0.62)",
+        "category_ok": true,
+        "reasons": ["Matched Qloo place 'Prado' (1.3 km from Lisbon)"],
+        "kept_unverified": false
+      },
+      {
+        "input": {"name": "O Velho Eurico", "neighbourhood": "Mouraria"},
+        "evidence": "verified",
+        "item_verdict": "allow",
+        "matched_name": "O Velho Eurico",
+        "entity_id": "rec-eurico",
+        "distance_km": 1.12,
+        "affinity": 0.779,
+        "anchor_percentile": 0.42,
+        "explainability": {"Radiohead": 0.55},
+        "explainability_summary": "Strongest contributing interest: Radiohead (0.55)",
+        "category_ok": true,
+        "reasons": ["Matched Qloo place 'O Velho Eurico' (1.1 km from Lisbon)"],
+        "kept_unverified": false
+      },
+      {
+        "input": {"name": "Le Comptoir du Relais", "neighbourhood": "6th arrondissement, Paris"},
+        "evidence": "mismatch",
+        "item_verdict": "rewrite",
+        "matched_name": "Le Comptoir du Relais",
+        "entity_id": "rec-paris",
+        "distance_km": 1452.0,
+        "affinity": null,
+        "anchor_percentile": null,
+        "explainability": {},
+        "explainability_summary": null,
+        "category_ok": true,
+        "reasons": [
+          "Gemini said 6th arrondissement, Paris / Lisbon; Qloo places 'Le Comptoir du Relais' 1452.0 km away (Paris 6th arrondissement)",
+          "No in-city name match found"
+        ],
+        "kept_unverified": false
+      },
+      {
+        "input": {"name": "Fortaleza do Guincho", "neighbourhood": "Cresmina, Cascais"},
+        "evidence": "mismatch",
+        "item_verdict": "rewrite",
+        "matched_name": "Fortaleza do Guincho",
+        "entity_id": "rec-cascais",
+        "distance_km": 29.2,
+        "affinity": null,
+        "anchor_percentile": null,
+        "explainability": {},
+        "explainability_summary": null,
+        "category_ok": true,
+        "reasons": [
+          "Gemini said Cresmina, Cascais / Lisbon; Qloo places 'Fortaleza do Guincho' 29.2 km away (Cresmina)",
+          "No in-city name match found"
+        ],
+        "kept_unverified": false
+      },
+      {
+        "input": {"name": "Casa Azul da Lua Fictícia", "neighbourhood": "Alfama"},
+        "evidence": "unknown",
+        "item_verdict": "unknown",
+        "matched_name": null,
+        "entity_id": null,
+        "distance_km": null,
+        "affinity": null,
+        "anchor_percentile": null,
+        "explainability": {},
+        "explainability_summary": null,
+        "category_ok": null,
+        "reasons": ["No confident Qloo match"],
+        "kept_unverified": true
+      }
+    ],
+    "alternatives": [
+      {
+        "entity_id": "rec-alt-1",
+        "name": "Palacio Belmonte Cafe & Bar",
+        "affinity": 0.889,
+        "distance_km": 1.27,
+        "locality": "Santiago",
+        "explainability_summary": "Strongest contributing interest: Radiohead (0.71)",
+        "replacement_reason": "Qloo in-city restaurant alternative (covers unverifiable and/or off-taste slots)"
+      },
+      {
+        "entity_id": "rec-alt-2",
+        "name": "Taberna do Calhau",
+        "affinity": 0.85,
+        "distance_km": 3.7,
+        "locality": "Mouraria",
+        "explainability_summary": "Strongest contributing interest: Radiohead (0.58)",
+        "replacement_reason": "Qloo in-city restaurant alternative (covers unverifiable and/or off-taste slots)"
+      },
+      {
+        "entity_id": "rec-alt-3",
+        "name": "Senhor Uva",
+        "affinity": 0.82,
+        "distance_km": 1.75,
+        "locality": "Estrela",
+        "explainability_summary": "Strongest contributing interest: Radiohead (0.54)",
+        "replacement_reason": "Qloo in-city restaurant alternative (covers unverifiable and/or off-taste slots)"
+      },
+      {
+        "entity_id": "rec-alt-4",
+        "name": "A Cevicheria",
+        "affinity": 0.81,
+        "distance_km": 1.9,
+        "locality": "Príncipe Real",
+        "explainability_summary": "Strongest contributing interest: Radiohead (0.51)",
+        "replacement_reason": "Qloo in-city restaurant alternative (covers unverifiable and/or off-taste slots)"
+      },
+      {
+        "entity_id": "rec-alt-5",
+        "name": "Cervejaria Ramiro",
+        "affinity": 0.80,
+        "distance_km": 2.1,
+        "locality": "Intendente",
+        "explainability_summary": "Strongest contributing interest: Radiohead (0.49)",
+        "replacement_reason": "Qloo in-city restaurant alternative (covers unverifiable and/or off-taste slots)"
+      }
+    ],
+    "notes": {"expected_count": 5}
+  },
+  "repair": {
+    "final": {
+      "evaluation_status": "completed",
+      "policy_verdict": "PASS",
+      "city": "Lisbon",
+      "anchor_count": 26,
+      "message": "Repaired in 1 round: Le Comptoir du Relais → Taberna do Calhau; Fortaleza do Guincho → A Cevicheria; Casa Azul da Lua Fictícia → Cervejaria Ramiro",
+      "candidates": [
+        {
+          "input": {"name": "Prado", "neighbourhood": "Sé"},
+          "evidence": "verified",
+          "item_verdict": "allow",
+          "matched_name": "Prado",
+          "entity_id": "rec-prado",
+          "distance_km": 1.34,
+          "affinity": 0.814,
+          "anchor_percentile": 0.875,
+          "explainability": {"Radiohead": 0.62},
+          "explainability_summary": "Strongest contributing interest: Radiohead (0.62)",
+          "category_ok": true,
+          "reasons": ["Matched Qloo place 'Prado' (1.3 km from Lisbon)", "Kept after TasteGuard allow"],
+          "kept_unverified": false
+        },
+        {
+          "input": {"name": "O Velho Eurico", "neighbourhood": "Mouraria"},
+          "evidence": "verified",
+          "item_verdict": "allow",
+          "matched_name": "O Velho Eurico",
+          "entity_id": "rec-eurico",
+          "distance_km": 1.12,
+          "affinity": 0.779,
+          "anchor_percentile": 0.42,
+          "explainability": {"Radiohead": 0.55},
+          "explainability_summary": "Strongest contributing interest: Radiohead (0.55)",
+          "category_ok": true,
+          "reasons": ["Matched Qloo place 'O Velho Eurico' (1.1 km from Lisbon)", "Kept after TasteGuard allow"],
+          "kept_unverified": false
+        },
+        {
+          "input": {"name": "Taberna do Calhau", "neighbourhood": "Mouraria"},
+          "evidence": "verified",
+          "item_verdict": "allow",
+          "matched_name": "Taberna do Calhau",
+          "entity_id": "rec-alt-2",
+          "distance_km": 3.7,
+          "affinity": 0.85,
+          "anchor_percentile": 0.96,
+          "explainability": {"Radiohead": 0.58},
+          "explainability_summary": "Strongest contributing interest: Radiohead (0.58)",
+          "category_ok": true,
+          "reasons": ["Matched Qloo place 'Taberna do Calhau' (3.7 km from Lisbon)"],
+          "kept_unverified": false
+        },
+        {
+          "input": {"name": "A Cevicheria", "neighbourhood": "Príncipe Real"},
+          "evidence": "verified",
+          "item_verdict": "allow",
+          "matched_name": "A Cevicheria",
+          "entity_id": "rec-alt-4",
+          "distance_km": 1.9,
+          "affinity": 0.81,
+          "anchor_percentile": 0.83,
+          "explainability": {"Radiohead": 0.51},
+          "explainability_summary": "Strongest contributing interest: Radiohead (0.51)",
+          "category_ok": true,
+          "reasons": ["Matched Qloo place 'A Cevicheria' (1.9 km from Lisbon)"],
+          "kept_unverified": false
+        },
+        {
+          "input": {"name": "Cervejaria Ramiro", "neighbourhood": "Intendente"},
+          "evidence": "verified",
+          "item_verdict": "allow",
+          "matched_name": "Cervejaria Ramiro",
+          "entity_id": "rec-alt-5",
+          "distance_km": 2.1,
+          "affinity": 0.80,
+          "anchor_percentile": 0.79,
+          "explainability": {"Radiohead": 0.49},
+          "explainability_summary": "Strongest contributing interest: Radiohead (0.49)",
+          "category_ok": true,
+          "reasons": ["Matched Qloo place 'Cervejaria Ramiro' (2.1 km from Lisbon)"],
+          "kept_unverified": false
+        }
+      ],
+      "alternatives": [],
+      "notes": {
+        "repair_round": 1,
+        "expected_count": 5,
+        "kept_allows": 2,
+        "replaced": [
+          "Le Comptoir du Relais → Taberna do Calhau",
+          "Fortaleza do Guincho → A Cevicheria",
+          "Casa Azul da Lua Fictícia → Cervejaria Ramiro"
+        ]
+      }
+    },
+    "history_len": 2
+  }
+}

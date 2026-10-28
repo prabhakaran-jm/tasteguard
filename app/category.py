@@ -58,12 +58,18 @@ HARD_REJECT_NAME = {
     "travessa",
     "hotel",
     "hostel",
+    "palace",
+    "palacio",
+    "palácio",
     "bookstore",
     "livraria",
     "theatre",
     "theater",
     "teatro",
 }
+
+# Cafe/bar alone is not enough for a dinner list when the venue reads as lodging.
+LODGING_HINTS = ("hotel", "hostel", "palace", "palacio", "palácio", "belmonte")
 
 # Cultural "casa …" without an explicit dining word in the name.
 CULTURAL_CASA_BLOCKLIST = {
@@ -102,6 +108,9 @@ def is_restaurant_like(entity: dict[str, Any]) -> bool:
     genre = _primary_genre(entity)
 
     if any(token in name for token in HARD_REJECT_NAME):
+        # Hotel/palace cafes: reject even if "cafe" appears in the name.
+        if any(h in name for h in LODGING_HINTS):
+            return False
         if not _has_dining_signal(name, ""):
             return False
 
@@ -111,7 +120,16 @@ def is_restaurant_like(entity: dict[str, Any]) -> bool:
         # "Casa Fernando Pessoa" etc. — cultural houses without cafe/restaurant in name
         return False
 
-    return _has_dining_signal(name, genre)
+    if not _has_dining_signal(name, genre):
+        return False
+
+    # Dinner list: cafe/bar-only venues inside lodging names are not eligible.
+    lodging = any(h in name for h in LODGING_HINTS) or any(
+        h in genre for h in LODGING_HINTS
+    )
+    if lodging and "restaurant" not in name and "restaurant" not in genre:
+        return False
+    return True
 
 
 def tag_names(entity: dict[str, Any]) -> list[str]:

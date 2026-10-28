@@ -68,8 +68,9 @@ def test_miradouro_and_street_rejected():
     assert not is_restaurant_like({"name": "Rua nova do Carvalho", "tags": []})
 
 
-def test_palace_cafe_allowed_by_name():
-    assert is_restaurant_like(
+def test_palace_cafe_rejected_as_lodging_cafe():
+    # Dinner list must not accept hotel/palace cafés even with "cafe" in the name.
+    assert not is_restaurant_like(
         {
             "name": "Palacio Belmonte Cafe & Bar",
             "properties": {"primary_genre": "Cafe"},
@@ -100,3 +101,12 @@ def test_casa_with_restaurant_in_name_allowed():
 
 def test_sem_wine_bar_does_not_match_little_wine_bar():
     assert name_similarity("SEM Wine Bar", "Little Wine Bar") < 0.72
+
+
+def test_prado_does_not_perfect_match_prado_wine_bar():
+    # One-word query must not treat a longer sibling venue as identity.
+    assert name_similarity("Prado", "Prado Wine Bar") < 0.72
+
+
+def test_invented_casa_does_not_confident_match_faia():
+    assert name_similarity("Casa Azul da Lua Fictícia", "O Faia - Casa de Fado") < 0.72

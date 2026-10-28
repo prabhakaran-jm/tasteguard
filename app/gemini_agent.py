@@ -51,6 +51,8 @@ class GeminiConcierge:
             config=types.GenerateContentConfig(
                 temperature=0,
                 response_mime_type="application/json",
+                # Flash-3 thinking budgets add multi-second latency with no JSON gain.
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
             ),
         )
         return resp.text or ""

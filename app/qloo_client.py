@@ -196,20 +196,65 @@ def affinity_of(entity: dict[str, Any]) -> float | None:
 
 
 def explainability_of(entity: dict[str, Any]) -> dict[str, float]:
+    """Parse Qloo explainability from several observed response shapes."""
     query = entity.get("query") or {}
     block = None
     if isinstance(query, dict):
         block = query.get("explainability")
     if block is None:
         block = entity.get("explainability")
+    return _parse_explainability_block(block)
+
+
+def _parse_explainability_block(block: Any) -> dict[str, float]:
     out: dict[str, float] = {}
+    if block is None:
+        return out
+
+    if isinstance(block, list):
+        for item in block:
+            if not isinstance(item, dict):
+                continue
+            eid = item.get("entity_id") or item.get("id") or item.get("name")
+            score = item.get("score") or item.get("weight") or item.get("contribution")
+            if eid is None or score is None:
+                continue
+            try:
+                out[str(eid)] = float(score)
+            except (TypeError, ValueError):
+                continue
+        return out
+
     if not isinstance(block, dict):
         return out
-    interests = block.get("signal.interests.entities") or block.get("entities") or block
-    if isinstance(interests, dict):
-        for key, val in interests.items():
+
+    for key in (
+        "signal.interests.entities",
+        "signal.interests.tags",
+        "entities",
+        "interests",
+        "contributors",
+        "scores",
+    ):
+        if key in block and block[key] is not None:
+            nested = _parse_explainability_block(block[key])
+            if nested:
+                out.update(nested)
+
+    for key, val in block.items():
+        if key.startswith("signal.") or key in {
+            "entities",
+            "interests",
+            "contributors",
+            "scores",
+            "tags",
+        }:
+            continue
+        if isinstance(val, (int, float)):
+            out[str(key)] = float(val)
+        elif isinstance(val, dict) and "score" in val:
             try:
-                out[str(key)] = float(val)
+                out[str(key)] = float(val["score"])
             except (TypeError, ValueError):
                 continue
     return out
