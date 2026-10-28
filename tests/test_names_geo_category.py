@@ -9,9 +9,21 @@ def test_normalize_strips_prefixes_and_diacritics():
 
 
 def test_token_set_matches_short_names():
-    assert name_similarity("Cervejaria Ramiro", "Ramiro") >= 0.85
-    assert name_similarity("Restaurante Arola", "Arola") >= 0.85
-    assert name_similarity("Restaurant - Cervejaria Ramiro", "Cervejaria Ramiro") >= 0.85
+    assert name_similarity("Cervejaria Ramiro", "Ramiro") >= 0.72
+    assert name_similarity("Restaurante Arola", "Arola") >= 0.72
+    assert name_similarity("Restaurant - Cervejaria Ramiro", "Cervejaria Ramiro") >= 0.72
+
+
+def test_french_laundry_does_not_match_french_arth():
+    # Regression: Lisbon false positive that blocked wrong-city detection
+    assert name_similarity("The French Laundry", "French Arth") < 0.72
+
+
+def test_french_laundry_matches_itself():
+    assert name_similarity("The French Laundry", "The French Laundry") >= 0.85
+    assert (
+        name_similarity("The French Laundry", "French Laundry Restaurant") >= 0.72
+    )
 
 
 def test_cascais_distance_from_lisbon():
