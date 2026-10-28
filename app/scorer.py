@@ -268,7 +268,14 @@ class AnchorScorer:
         percentile = self.relative_percentile(affinity, anchor_affinities)
         cutoff = self.settings.allow_anchor_percentile
         band = self.settings.allow_borderline_band
+        floor = self.settings.allow_affinity_floor
         if percentile >= cutoff:
+            return ItemVerdict.ALLOW, affinity, percentile, reasons
+        if affinity >= floor:
+            reasons.append(
+                f"Strong absolute taste fit ({affinity:.2f} ≥ {floor:.2f}) "
+                f"despite beating only {percentile:.0%} of anchors — allowed"
+            )
             return ItemVerdict.ALLOW, affinity, percentile, reasons
         if percentile >= cutoff - band:
             reasons.append(
@@ -278,7 +285,7 @@ class AnchorScorer:
             return ItemVerdict.ALLOW, affinity, percentile, reasons
         reasons.append(
             f"Beats {percentile:.0%} of in-city restaurant anchors "
-            f"(needs {cutoff:.0%})"
+            f"(needs {cutoff:.0%}; affinity {affinity:.2f} < floor {floor:.2f})"
         )
         return ItemVerdict.REWRITE, affinity, percentile, reasons
 

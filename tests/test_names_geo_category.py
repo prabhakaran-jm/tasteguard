@@ -122,6 +122,60 @@ def test_coffee_library_rejected_from_dinner_pool():
     )
 
 
+def test_historic_cafe_nicola_rejected():
+    assert not is_restaurant_like(
+        {
+            "name": "Nicola",
+            "properties": {"primary_genre": "Cafe"},
+        }
+    )
+
+
+def test_naval_association_rejected():
+    assert not is_restaurant_like(
+        {
+            "name": "BONANÇA - Associação Naval de Lisboa",
+            "properties": {"primary_genre": "Club"},
+        }
+    )
+
+
+def test_affinity_floor_allows_strong_fit_low_percentile():
+    from app.config import Settings
+    from app.models import EvaluationStatus, EvidenceState, ItemVerdict
+    from app.resolver import PlaceEntity, ResolveHit
+    from app.scorer import AnchorScorer
+
+    settings = Settings(
+        allow_anchor_percentile=0.40,
+        allow_borderline_band=0.05,
+        allow_affinity_floor=0.72,
+    )
+    scorer = AnchorScorer(qloo=None, settings=settings)  # type: ignore[arg-type]
+    hit = ResolveHit(
+        evidence=EvidenceState.VERIFIED,
+        entity=PlaceEntity(
+            entity_id="prado",
+            name="Prado",
+            location=None,
+            is_restaurant=True,
+        ),
+        distance_km=1.4,
+        similarity=1.0,
+        reasons=["ok"],
+    )
+    # Live Lisbon: affinity 0.74, percentile ~23% → ALLOW via floor
+    verdict, _, pct, reasons = scorer.item_from_resolve_and_score(
+        hit=hit,
+        scored={"affinity": 0.74, "summary": None},
+        anchor_affinities=[0.9] * 38 + [0.5] * 12,  # beats 12/50 = 0.24
+        evaluation_status=EvaluationStatus.COMPLETED,
+    )
+    assert pct is not None and pct < 0.40
+    assert verdict == ItemVerdict.ALLOW
+    assert any("absolute taste fit" in r for r in reasons)
+
+
 def test_join_messages_no_double_punctuation():
     from app.service import _join_messages
 

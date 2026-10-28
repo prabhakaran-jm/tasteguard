@@ -2,15 +2,13 @@ from __future__ import annotations
 
 from typing import Any
 
-# Must appear in name or primary_genre (not arbitrary tags / long descriptions).
-DINING_NAME_OR_GENRE = {
+# Strong dinner cues — cafe/bakery alone is not enough for a dinner list.
+DINNER_NAME_OR_GENRE = {
     "restaurant",
     "restaurante",
     "dining",
     "eatery",
     "bistro",
-    "cafe",
-    "café",
     "brasserie",
     "tasca",
     "taberna",
@@ -18,7 +16,6 @@ DINING_NAME_OR_GENRE = {
     "gastropub",
     "steakhouse",
     "pizzeria",
-    "bakery",
     "wine bar",
     "tapas",
     "seafood",
@@ -29,6 +26,9 @@ DINING_NAME_OR_GENRE = {
     "trattoria",
     "osteria",
 }
+
+# Weaker cues — only count when paired with a dinner cue above.
+WEAK_DINING = {"cafe", "café", "bakery", "pastelaria", "padaria", "bar"}
 
 HARD_REJECT_NAME = {
     "museum",
@@ -68,6 +68,14 @@ HARD_REJECT_NAME = {
     "teatro",
     "library",
     "coffee library",
+    "associação",
+    "associacao",
+    "association",
+    " naval",
+    "yacht",
+    "clube",
+    "club ",
+    " club",
 }
 
 # Cafe/bar alone is not enough for a dinner list when the venue reads as lodging.
@@ -95,47 +103,48 @@ def _primary_genre(entity: dict[str, Any]) -> str:
     return ""
 
 
-def _has_dining_signal(name: str, genre: str) -> bool:
+def _has_dinner_signal(name: str, genre: str) -> bool:
     blob = f"{name} {genre}"
-    return any(h in blob for h in DINING_NAME_OR_GENRE)
+    return any(h in blob for h in DINNER_NAME_OR_GENRE)
 
 
 def is_restaurant_like(entity: dict[str, Any]) -> bool:
     """Strict dinner-venue check for anchors, alternatives, and verified meals.
 
-    Requires an explicit dining cue in the **name** or **primary_genre**.
-    Tags and long descriptions are ignored (too noisy on Qloo place records).
+    Requires an explicit **dinner** cue in the name or primary_genre.
+    Cafe/coffee/club/association venues are rejected for the dinner list.
     """
     name = _name(entity)
     genre = _primary_genre(entity)
+    blob = f"{name} {genre}"
 
     if any(token in name for token in HARD_REJECT_NAME):
-        # Hotel/palace cafes: reject even if "cafe" appears in the name.
-        if any(h in name for h in LODGING_HINTS):
-            return False
-        if not _has_dining_signal(name, ""):
-            return False
+        return False
+    if any(token in genre for token in ("association", "club", "naval", "museum")):
+        return False
 
     if name.strip() in CULTURAL_CASA_BLOCKLIST:
         return False
-    if name.startswith("casa ") and not _has_dining_signal(name, ""):
-        # "Casa Fernando Pessoa" etc. — cultural houses without cafe/restaurant in name
+    if name.startswith("casa ") and not _has_dinner_signal(name, ""):
         return False
 
-    if not _has_dining_signal(name, genre):
+    if not _has_dinner_signal(name, genre):
         return False
 
-    # Dinner list: cafe/bar-only venues inside lodging names are not eligible.
     lodging = any(h in name for h in LODGING_HINTS) or any(
         h in genre for h in LODGING_HINTS
     )
     if lodging and "restaurant" not in name and "restaurant" not in genre:
         return False
 
-    # Coffee shops / libraries are not dinner restaurants.
     if "library" in name:
         return False
-    if "coffee" in name and "restaurant" not in name and "restaurant" not in genre:
+    if "coffee" in name and "restaurant" not in blob:
+        return False
+    # Historic cafés (e.g. Nicola) often have genre "Cafe" only — not dinner.
+    if any(w in blob for w in WEAK_DINING) and not _has_dinner_signal(name, genre):
+        return False
+    if genre.strip() in {"cafe", "café", "coffee shop", "coffeehouse", "bakery"}:
         return False
     return True
 
