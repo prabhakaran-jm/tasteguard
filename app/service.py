@@ -239,16 +239,22 @@ class TasteGuardService:
         *,
         persona_description: str,
         max_rounds: int = 3,
+        initial: EvaluationResult | None = None,
     ) -> tuple[EvaluationResult, list[EvaluationResult]]:
-        """Evaluate, then closed-set repair up to max_rounds until PASS or exhausted.
+        """Closed-set repair up to max_rounds until PASS or exhausted.
 
-        Gemini (or affinity-ranked fallback) may only pick entity IDs from the
-        FAIL alternatives pool. Each repair is re-evaluated end-to-end.
+        Pass ``initial`` (the evaluation the client already saw) to avoid
+        re-running evaluate on that same candidate set. Gemini (or affinity
+        fallback) may only pick entity IDs from the FAIL alternatives pool.
+        Each subsequent repair round is re-evaluated end-to-end.
         """
         from app.gemini_agent import GeminiConcierge
 
         history: list[EvaluationResult] = []
-        current = await self.evaluate(request)
+        if initial is not None:
+            current = initial
+        else:
+            current = await self.evaluate(request)
         history.append(current)
 
         if current.policy_verdict == PolicyVerdict.PASS:

@@ -29,3 +29,8 @@ probes/probe_report.json
 *.log
 .DS_Store
 agent-tools/
+
+# Frontend — commit sources + lockfile; build locally before Cloud Run upload
+web/node_modules/
+web/dist/
+

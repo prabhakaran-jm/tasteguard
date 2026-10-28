@@ -1,0 +1,25 @@
+# Denylist: start from .gitignore, then carve back in web/dist for source deploys.
+# Dry-run before Day 3: gcloud meta list-files-for-upload --verbosity=info
+# (or: gcloud builds submit --dry-run) and confirm web/dist/index.html is listed.
+
+.gitignore
+
+# Re-admit the prebuilt SPA (kept out of git; must ride along in the upload).
+!web/dist/
+!web/dist/**
+
+# Never ship the Node toolchain — hundreds of MB and unused at runtime.
+web/node_modules/
+web/node_modules/**
+
+# Local / agent noise
+.cursor/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+probes/probe_report.json
+*.log
