@@ -39,17 +39,21 @@ class GeminiConcierge:
     def enabled(self) -> bool:
         return bool(self.settings.gemini_api_key)
 
-    def _model(self):
-        import google.generativeai as genai
+    def _generate(self, prompt: str) -> str:
+        """Call Gemini via the supported ``google.genai`` SDK."""
+        from google import genai
+        from google.genai import types
 
-        genai.configure(api_key=self.settings.gemini_api_key)
-        return genai.GenerativeModel(
-            self.settings.gemini_model,
-            generation_config={
-                "temperature": 0,
-                "response_mime_type": "application/json",
-            },
+        client = genai.Client(api_key=self.settings.gemini_api_key)
+        resp = client.models.generate_content(
+            model=self.settings.gemini_model,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0,
+                response_mime_type="application/json",
+            ),
         )
+        return resp.text or ""
 
     async def recommend(
         self,
@@ -65,11 +69,11 @@ class GeminiConcierge:
             f"{SYSTEM}\n\n"
             f"City: {city}\n"
             f"Diner taste profile: {persona_description}\n"
-            f"Recommend {n} dinner restaurants. Include neighbourhood."
+            f"Recommend {n} dinner restaurants only (no museums, viewpoints, or shops). "
+            f"Include neighbourhood."
         )
-        model = self._model()
-        resp = await asyncio.to_thread(model.generate_content, prompt)
-        data = _extract_json(resp.text or "")
+        text = await asyncio.to_thread(self._generate, prompt)
+        data = _extract_json(text)
         items = data.get("recommendations") or data.get("restaurants") or []
         out: list[CandidateInput] = []
         for item in items:
@@ -104,13 +108,15 @@ class GeminiConcierge:
         if not alternatives:
             return []
 
+        target_n = min(max(n, 1), len(alternatives))
+
         if not self.enabled:
             ranked = sorted(
                 alternatives,
                 key=lambda a: (a.affinity is not None, a.affinity or 0.0),
                 reverse=True,
             )
-            return [a.entity_id for a in ranked[:n]]
+            return [a.entity_id for a in ranked[:target_n]]
 
         pool = [
             {
@@ -126,22 +132,34 @@ class GeminiConcierge:
             f"{SYSTEM}\n\n"
             f"City: {city}\nTaste profile: {persona_description}\n"
             f"Previous list FAILED TasteGuard for: {fail_reasons}\n"
-            f"You MUST choose exactly up to {n} restaurants from this pool by entity_id only.\n"
+            f"You MUST choose exactly {target_n} restaurants from this pool by entity_id only.\n"
             f"Do not invent places. Do not return names that are not in the pool.\n"
+            f"Prefer real dining venues; the pool should already be restaurants only.\n"
             f"Pool JSON: {json.dumps(pool)}\n"
             'Return JSON: {"chosen_entity_ids": ["..."]}'
         )
-        model = self._model()
-        resp = await asyncio.to_thread(model.generate_content, prompt)
-        data = _extract_json(resp.text or "")
+        text = await asyncio.to_thread(self._generate, prompt)
+        data = _extract_json(text)
         chosen = data.get("chosen_entity_ids") or data.get("entity_ids") or []
         allowed = {a.entity_id for a in alternatives}
         cleaned = [str(x) for x in chosen if str(x) in allowed]
-        if not cleaned:
+        # Dedupe preserve order
+        seen: set[str] = set()
+        uniq: list[str] = []
+        for eid in cleaned:
+            if eid not in seen:
+                seen.add(eid)
+                uniq.append(eid)
+        if len(uniq) < target_n:
             ranked = sorted(
                 alternatives,
                 key=lambda a: (a.affinity is not None, a.affinity or 0.0),
                 reverse=True,
             )
-            return [a.entity_id for a in ranked[:n]]
-        return cleaned[:n]
+            for a in ranked:
+                if a.entity_id not in seen:
+                    uniq.append(a.entity_id)
+                    seen.add(a.entity_id)
+                if len(uniq) >= target_n:
+                    break
+        return uniq[:target_n]

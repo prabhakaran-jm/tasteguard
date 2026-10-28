@@ -177,10 +177,25 @@ class TasteGuardService:
                 unknown_count = sum(
                     1 for c in scored_candidates if c.item_verdict == ItemVerdict.UNKNOWN
                 )
-                if unknown_count:
+                rewrite_count = sum(
+                    1 for c in scored_candidates if c.item_verdict == ItemVerdict.REWRITE
+                )
+                # Honest labels: only mention unverifiable when unknowns exist.
+                if unknown_count and not rewrite_count:
                     for alt in alternatives:
                         alt.replacement_reason = (
                             "Replaced because unverifiable, not because off-taste"
+                        )
+                elif rewrite_count and not unknown_count:
+                    for alt in alternatives:
+                        alt.replacement_reason = (
+                            "Qloo in-city restaurant alternative for policy rewrite"
+                        )
+                elif unknown_count and rewrite_count:
+                    for alt in alternatives:
+                        alt.replacement_reason = (
+                            "Qloo in-city restaurant alternative "
+                            "(covers unverifiable and/or off-taste slots)"
                         )
 
             messages: list[str] = []
@@ -191,10 +206,15 @@ class TasteGuardService:
                     "TasteGuard only passes what it can verify; insufficient anchors → no PASS."
                 )
             if policy == PolicyVerdict.FAIL:
+                unknown_count = sum(
+                    1 for c in scored_candidates if c.item_verdict == ItemVerdict.UNKNOWN
+                )
+                if unknown_count:
+                    messages.append(
+                        "Unverified items stay on the card as kept/unverified."
+                    )
                 messages.append(
-                    "Unverified items stay on the card as kept/unverified; "
-                    "repair alternatives replace them because they are unverifiable, "
-                    "not because they are off-taste."
+                    "Repair picks only from the Qloo restaurant alternative pool."
                 )
 
             return EvaluationResult(
@@ -246,12 +266,14 @@ class TasteGuardService:
                 break
 
             reasons = [r for c in current.candidates for r in c.reasons][:12]
+            # Keep repaired list length aligned with the unguarded / current list.
+            target_n = max(len(working.candidates), 1)
             chosen_ids = await agent.repair_from_pool(
                 city=working.city,
                 persona_description=persona_description,
                 fail_reasons=reasons,
                 alternatives=current.alternatives,
-                n=min(5, len(current.alternatives)),
+                n=min(target_n, len(current.alternatives)),
             )
             by_id = {a.entity_id: a for a in current.alternatives}
             repaired: list[CandidateInput] = []

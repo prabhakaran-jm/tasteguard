@@ -51,3 +51,52 @@ def test_museum_not_restaurant():
             "tags": [{"name": "Museum"}],
         }
     )
+
+
+def test_museum_rejected_even_with_noisy_food_tag():
+    assert not is_restaurant_like(
+        {
+            "name": "Museum of Contemporary Art – MAC/CCB",
+            "properties": {"description": "Cafe on site serves food"},
+            "tags": [{"name": "Museum"}, {"name": "Food"}],
+        }
+    )
+
+
+def test_miradouro_and_street_rejected():
+    assert not is_restaurant_like({"name": "Miradouro de Santa Catarina", "tags": []})
+    assert not is_restaurant_like({"name": "Rua nova do Carvalho", "tags": []})
+
+
+def test_palace_cafe_allowed_by_name():
+    assert is_restaurant_like(
+        {
+            "name": "Palacio Belmonte Cafe & Bar",
+            "properties": {"primary_genre": "Cafe"},
+            "tags": [{"name": "Cafe"}],
+        }
+    )
+
+
+def test_cultural_casa_rejected():
+    assert not is_restaurant_like(
+        {
+            "name": "Casa Fernando Pessoa",
+            "properties": {"primary_genre": "Museum"},
+            "tags": [{"name": "Cultural Center"}, {"name": "Food"}],
+        }
+    )
+    assert not is_restaurant_like({"name": "Casa dos Bicos", "tags": []})
+
+
+def test_casa_with_restaurant_in_name_allowed():
+    assert is_restaurant_like(
+        {
+            "name": "Casa do Alentejo Restaurant",
+            "properties": {"primary_genre": "Portuguese Restaurant"},
+        }
+    )
+
+
+def test_sem_wine_bar_does_not_match_little_wine_bar():
+    assert name_similarity("SEM Wine Bar", "Little Wine Bar") < 0.72

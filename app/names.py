@@ -29,6 +29,7 @@ GENERIC_TOKENS = {
     "kitchen",
     "grill",
     "house",
+    "wine",  # too weak alone — "SEM … Wine Bar" vs "Little Wine Bar"
 }
 
 
@@ -43,16 +44,13 @@ def _tokens(normalized: str) -> list[str]:
     return [t for t in normalized.split() if t]
 
 
-def _distinctive_coverage(query_norm: str, candidate_norm: str) -> float:
-    """Fraction of distinctive query tokens (len>=4) found in the candidate.
+def _token_coverage(query_norm: str, candidate_norm: str) -> float:
+    """Fraction of all query tokens found in the candidate (any length).
 
-    Prevents "The French Laundry" matching "French Arth" on the shared "french"
-    token alone.
+    Short brand tokens like "sem" must count — otherwise "SEM Wine Bar"
+    falsely matches "Little Wine Bar".
     """
-    q_tokens = [t for t in _tokens(query_norm) if len(t) >= 4]
-    if not q_tokens:
-        # Fall back to all tokens if none are long enough
-        q_tokens = _tokens(query_norm)
+    q_tokens = _tokens(query_norm)
     if not q_tokens:
         return 0.0
     c_set = set(_tokens(candidate_norm))
@@ -63,8 +61,8 @@ def _distinctive_coverage(query_norm: str, candidate_norm: str) -> float:
 def name_similarity(a: str, b: str) -> float:
     """Conservative similarity for place identity.
 
-    Uses the minimum of token-set and token-sort ratios, then multiplies by
-    distinctive-token coverage so a single shared word cannot pass the gate.
+    Uses min(token_set, token_sort) × full token coverage so a single shared
+    weak word cannot pass the gate.
     """
     na, nb = normalize_name(a), normalize_name(b)
     if not na or not nb:
@@ -72,7 +70,7 @@ def name_similarity(a: str, b: str) -> float:
     set_score = fuzz.token_set_ratio(na, nb) / 100.0
     sort_score = fuzz.token_sort_ratio(na, nb) / 100.0
     base = min(set_score, sort_score)
-    coverage = _distinctive_coverage(na, nb)
+    coverage = _token_coverage(na, nb)
     return base * coverage
 
 

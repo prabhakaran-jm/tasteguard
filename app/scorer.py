@@ -51,21 +51,33 @@ class AnchorScorer:
         *,
         city: str,
         city_center: LatLng,
-        signal_entities: list[str],
+        signal_entities: list[str] | None = None,
     ) -> list[PlaceEntity]:
+        """Build a mid/high-popularity in-city restaurant sample.
+
+        Intentionally does **not** pass persona signals — otherwise Insights
+        returns the high-affinity tail and every real Gemini pick scores pct=0.
+        Persona signals are applied later in ``score_shared_pool``.
+        """
+        _ = signal_entities  # kept for call-site compatibility
         anchors: list[PlaceEntity] = []
         seen: set[str] = set()
-        for pop_min, pop_max, page in (
-            (0.55, 0.95, 1),
-            (0.40, 0.85, 1),
-            (0.40, 0.85, 2),
-        ):
+        # Broader popularity bands + more pages to survive strict restaurant filter
+        bands = (
+            (0.50, 0.95, 1),
+            (0.50, 0.95, 2),
+            (0.35, 0.80, 1),
+            (0.35, 0.80, 2),
+            (0.20, 0.70, 1),
+            (0.20, 0.70, 2),
+        )
+        for pop_min, pop_max, page in bands:
             if len(anchors) >= self.settings.anchor_target:
                 break
             try:
                 payload = await self.qloo.insights(
                     filter_type="urn:entity:place",
-                    signal_interest_entities=signal_entities or None,
+                    # No signal.interests.entities here (popularity sample only).
                     filter_location_query=city,
                     filter_popularity_min=pop_min,
                     filter_popularity_max=pop_max,
@@ -77,32 +89,62 @@ class AnchorScorer:
                 logger.warning("anchor fetch failed: %s", exc)
                 continue
             for raw in entities_from_insights(payload):
-                if not is_restaurant_like(raw):
+                place = self._restaurant_near(raw, city_center, seen)
+                if place is None:
                     continue
-                eid = str(raw.get("entity_id") or raw.get("id") or "")
-                if not eid or eid in seen:
-                    continue
-                loc = extract_latlng(raw)
-                if loc is None:
-                    continue
-                dist = haversine_km(city_center, loc)
-                if dist > self.settings.near_radius_km:
-                    continue
-                seen.add(eid)
-                anchors.append(
-                    PlaceEntity(
-                        entity_id=eid,
-                        name=str(raw.get("name") or ""),
-                        location=loc,
-                        address=extract_address(raw),
-                        locality=extract_locality(raw),
-                        is_restaurant=True,
-                        raw=raw,
-                    )
-                )
+                anchors.append(place)
                 if len(anchors) >= self.settings.anchor_target:
                     break
+        if len(anchors) < self.settings.anchor_floor:
+            # Fallback: local search for restaurants (still no persona bias)
+            try:
+                from app.geo import latlon_param
+
+                hits = await self.qloo.search(
+                    "restaurant",
+                    types="urn:entity:place",
+                    filter_location_latlon=latlon_param(city_center),
+                    filter_radius_miles=max(self.settings.near_radius_km / 1.609, 5.0),
+                    take=50,
+                )
+                for raw in hits:
+                    place = self._restaurant_near(raw, city_center, seen)
+                    if place is None:
+                        continue
+                    anchors.append(place)
+                    if len(anchors) >= self.settings.anchor_target:
+                        break
+            except QlooError as exc:
+                logger.warning("anchor search fallback failed: %s", exc)
         return anchors
+
+    def _restaurant_near(
+        self,
+        raw: dict[str, Any],
+        city_center: LatLng,
+        seen: set[str],
+    ) -> PlaceEntity | None:
+        if not is_restaurant_like(raw):
+            return None
+        eid = str(raw.get("entity_id") or raw.get("id") or "")
+        if not eid or eid in seen:
+            return None
+        loc = extract_latlng(raw)
+        if loc is None:
+            return None
+        dist = haversine_km(city_center, loc)
+        if dist > self.settings.near_radius_km:
+            return None
+        seen.add(eid)
+        return PlaceEntity(
+            entity_id=eid,
+            name=str(raw.get("name") or ""),
+            location=loc,
+            address=extract_address(raw),
+            locality=extract_locality(raw),
+            is_restaurant=True,
+            raw=raw,
+        )
 
     async def score_shared_pool(
         self,
@@ -220,36 +262,40 @@ class AnchorScorer:
         id_labels: dict[str, str] | None = None,
         take: int = 12,
     ) -> list[Alternative]:
-        try:
-            payload = await self.qloo.insights(
-                filter_type="urn:entity:place",
-                signal_interest_entities=signal_entities or None,
-                filter_exclude_entities=exclude_ids or None,
-                filter_location_query=city,
-                filter_location_radius=0,
-                feature_explainability=True,
-                take=take,
+        """Persona-ranked restaurant alternatives (signals ON; category filter strict)."""
+        exclude = set(exclude_ids)
+        raw_rows: list[dict[str, Any]] = []
+        # Over-fetch + page: strict restaurant filter drops museums/cultural casas.
+        for page in (1, 2, 3):
+            if len(raw_rows) >= take * 4:
+                break
+            payload = await self._alts_insights(
+                city=city,
+                signal_entities=signal_entities,
+                exclude_ids=exclude_ids,
+                take=50,
+                page=page,
+                with_radius_zero=True,
             )
-        except QlooError as exc:
-            if exc.status_code == 400:
-                try:
-                    payload = await self.qloo.insights(
-                        filter_type="urn:entity:place",
-                        signal_interest_entities=signal_entities or None,
-                        filter_exclude_entities=exclude_ids or None,
-                        filter_location_query=city,
-                        feature_explainability=True,
-                        take=take,
-                    )
-                except QlooError as exc2:
-                    logger.warning("alternatives unavailable: %s", exc2)
-                    return []
-            else:
-                logger.warning("alternatives unavailable: %s", exc)
-                return []
+            if payload is None and page == 1:
+                payload = await self._alts_insights(
+                    city=city,
+                    signal_entities=signal_entities,
+                    exclude_ids=exclude_ids,
+                    take=50,
+                    page=1,
+                    with_radius_zero=False,
+                )
+            if not payload:
+                break
+            batch = entities_from_insights(payload)
+            if not batch:
+                break
+            raw_rows.extend(batch)
 
         alts: list[Alternative] = []
-        for raw in entities_from_insights(payload):
+        seen: set[str] = set()
+        for raw in raw_rows:
             if not is_restaurant_like(raw):
                 continue
             loc = extract_latlng(raw)
@@ -259,8 +305,9 @@ class AnchorScorer:
             if dist > self.settings.near_radius_km:
                 continue
             eid = str(raw.get("entity_id") or raw.get("id") or "")
-            if not eid or eid in exclude_ids:
+            if not eid or eid in exclude or eid in seen:
                 continue
+            seen.add(eid)
             alts.append(
                 Alternative(
                     entity_id=eid,
@@ -275,4 +322,40 @@ class AnchorScorer:
                     replacement_reason="Qloo in-city restaurant alternative",
                 )
             )
+            if len(alts) >= take:
+                break
+        if not alts:
+            logger.warning(
+                "No restaurant-like alternatives after category filter for city=%s",
+                city,
+            )
         return alts
+
+    async def _alts_insights(
+        self,
+        *,
+        city: str,
+        signal_entities: list[str],
+        exclude_ids: list[str],
+        take: int,
+        page: int,
+        with_radius_zero: bool,
+    ) -> dict[str, Any] | None:
+        kwargs: dict[str, Any] = {
+            "filter_type": "urn:entity:place",
+            "signal_interest_entities": signal_entities or None,
+            "filter_exclude_entities": exclude_ids or None,
+            "filter_location_query": city,
+            "feature_explainability": True,
+            "take": take,
+            "page": page,
+        }
+        if with_radius_zero:
+            kwargs["filter_location_radius"] = 0
+        try:
+            return await self.qloo.insights(**kwargs)
+        except QlooError as exc:
+            if with_radius_zero and exc.status_code == 400:
+                return None
+            logger.warning("alternatives unavailable: %s", exc)
+            return None
