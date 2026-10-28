@@ -123,3 +123,5 @@ class EvaluateRequest(BaseModel):
     expected_count: int | None = Field(default=None, ge=1, le=8)
     # Entity IDs already tried in prior repair rounds — excluded from the alt pool.
     exclude_entity_ids: list[str] = Field(default_factory=list)
+    # When set (repair), reuse the evaluation's anchor IDs so percentiles do not drift.
+    anchor_entity_ids: list[str] = Field(default_factory=list)

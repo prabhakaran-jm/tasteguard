@@ -191,10 +191,17 @@ export default function App() {
       {showDemo ? (
         <main className="demo" ref={demoRef}>
           <p className="run-mode">
-            {mode === 'recorded'
-              ? 'Illustrative example (not a live capture)'
-              : 'Live run'}{' '}
-            · {selected?.city}
+            {mode === 'recorded' ? 'Recorded replay' : 'Live run'} ·{' '}
+            {selected?.city}
+            {stageBusy === 'propose'
+              ? ' · Step 1/3 — proposing list…'
+              : null}
+            {stageBusy === 'evaluate'
+              ? ' · Step 2/3 — verifying with Qloo…'
+              : null}
+            {stageBusy === 'repair'
+              ? ' · Step 3/3 — repairing from closed pool…'
+              : null}
           </p>
           {selected ? (
             <p className="persona-line">

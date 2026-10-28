@@ -15,9 +15,19 @@ _RADIOHEAD_ARTSY_SEEDS = [
     {"query": "Aesop", "types": "urn:entity:brand"},
 ]
 
+# Stress inject: two keepers that clear the 40th-percentile taste policy in live
+# Qloo runs, plus wrong-city + invented catches. Neighbourhoods claim Lisbon so
+# the Paris/Cascais distance reveal is a real catch.
+_STRESS_INJECT = [
+    {"name": "A Cevicheria", "neighbourhood": "Príncipe Real"},
+    {"name": "Cervejaria Ramiro", "neighbourhood": "Intendente"},
+    {"name": "Le Comptoir du Relais", "neighbourhood": "Chiado"},
+    {"name": "Fortaleza do Guincho", "neighbourhood": "Bairro Alto"},
+    {"name": "Casa Azul da Lua Fictícia", "neighbourhood": "Alfama"},
+]
+
 
 PRESETS: dict[str, dict[str, Any]] = {
-    # Default judge path — always shows wrong-city + invent catches (no live Gemini).
     "stress-lisbon-recorded": {
         "id": "stress-lisbon-recorded",
         "label": "Stress test · Lisbon (recorded) — shows the catch",
@@ -32,11 +42,11 @@ PRESETS: dict[str, dict[str, Any]] = {
         "n": 5,
         "recorded_path": "recorded/stress-lisbon.json",
         "blurb": (
-            "Illustrative example of the catch card (wrong-city + invented name → "
-            "repair). Re-record from live after the repair path is solid."
+            "Recorded replay of a live Qloo stress run: two in-city keepers, a "
+            "Paris venue claiming Chiado, a Cascais venue claiming Bairro Alto, "
+            "and an invented name — then closed-set repair to five ALLOW places."
         ),
     },
-    # Same inject list, live Qloo evaluate (burns quota; labelled honestly).
     "stress-lisbon-live": {
         "id": "stress-lisbon-live",
         "label": "Stress test · Lisbon (live Qloo) — injects Paris + Cascais",
@@ -49,22 +59,15 @@ PRESETS: dict[str, dict[str, Any]] = {
         ),
         "seed_queries": list(_RADIOHEAD_ARTSY_SEEDS),
         "n": 5,
-        "inject_candidates": [
-            {"name": "Prado", "neighbourhood": "Sé"},
-            {"name": "O Velho Eurico", "neighbourhood": "Mouraria"},
-            # Claim Lisbon neighbourhoods so the wrong-city catch is a real reveal.
-            {"name": "Le Comptoir du Relais", "neighbourhood": "Chiado"},
-            {"name": "Fortaleza do Guincho", "neighbourhood": "Bairro Alto"},
-            {"name": "Casa Azul da Lua Fictícia", "neighbourhood": "Alfama"},
-        ],
+        "inject_candidates": list(_STRESS_INJECT),
         "blurb": (
-            "Does not call Gemini. Injects known wrong-city and invented names "
-            "(labelled as an injected test list), then runs live Qloo evaluate + repair."
+            "Injected test list (not Gemini). Deliberately includes wrong-city "
+            "and invented names, then runs live Qloo evaluate + repair."
         ),
     },
     "radiohead-nyc": {
         "id": "radiohead-nyc",
-        "label": "Radiohead · New York dinner (live)",
+        "label": "Radiohead · New York dinner (live) — optional, slower",
         "kind": "live",
         "city": "New York",
         "city_center": {"lat": 40.7128, "lon": -74.0060},
@@ -75,7 +78,10 @@ PRESETS: dict[str, dict[str, Any]] = {
         ),
         "seed_queries": list(_RADIOHEAD_ARTSY_SEEDS),
         "n": 5,
-        "blurb": "Honest live Gemini → TasteGuard path for New York.",
+        "blurb": (
+            "Optional live Gemini → TasteGuard path for New York. Often ~30–45s — "
+            "watch the step labels; prefer the recorded stress demo for a fast catch."
+        ),
     },
     "radiohead-lisbon": {
         "id": "radiohead-lisbon",
@@ -91,8 +97,8 @@ PRESETS: dict[str, dict[str, Any]] = {
         "seed_queries": list(_RADIOHEAD_ARTSY_SEEDS),
         "n": 5,
         "blurb": (
-            "Honest live run. At temperature 0 Gemini often picks good Lisbon "
-            "spots — use a stress/recorded preset to guarantee the catch."
+            "Honest live Gemini propose → TasteGuard. Use a stress preset to "
+            "guarantee the wrong-city catch."
         ),
     },
 }

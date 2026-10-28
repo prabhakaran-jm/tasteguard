@@ -66,6 +66,8 @@ function plainEvidence(s: Scored, showExplainability: boolean, city: string): st
     parts.push(s.explainability_summary)
   } else if (s.reasons && s.reasons[0] && s.evidence === 'mismatch') {
     parts.push(s.reasons[0])
+  } else if (s.reasons && s.reasons.some((r) => /Borderline/i.test(r))) {
+    parts.push(s.reasons.find((r) => /Borderline/i.test(r)) || '')
   } else if (s.reasons && s.reasons.some((r) => r.includes('no taste score'))) {
     parts.push(s.reasons.find((r) => r.includes('no taste score')) || '')
   }

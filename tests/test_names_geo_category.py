@@ -123,10 +123,25 @@ def test_coffee_library_rejected_from_dinner_pool():
 
 
 def test_historic_cafe_nicola_rejected():
+    from app.category import is_dinner_pool_eligible
+
     assert not is_restaurant_like(
         {
             "name": "Nicola",
             "properties": {"primary_genre": "Cafe"},
+        }
+    )
+    # Even with a noisy "restaurant" genre tag, Nicola stays out of the dinner pool.
+    assert not is_dinner_pool_eligible(
+        {
+            "name": "Nicola",
+            "properties": {"primary_genre": "Cafe Restaurant"},
+        }
+    )
+    assert not is_dinner_pool_eligible(
+        {
+            "name": "Barbica",
+            "properties": {"primary_genre": "Bar"},
         }
     )
 
@@ -140,17 +155,13 @@ def test_naval_association_rejected():
     )
 
 
-def test_affinity_floor_allows_strong_fit_low_percentile():
+def test_low_percentile_without_floor_is_rewrite():
     from app.config import Settings
     from app.models import EvaluationStatus, EvidenceState, ItemVerdict
     from app.resolver import PlaceEntity, ResolveHit
     from app.scorer import AnchorScorer
 
-    settings = Settings(
-        allow_anchor_percentile=0.40,
-        allow_borderline_band=0.05,
-        allow_affinity_floor=0.72,
-    )
+    settings = Settings(allow_anchor_percentile=0.40, allow_borderline_band=0.05)
     scorer = AnchorScorer(qloo=None, settings=settings)  # type: ignore[arg-type]
     hit = ResolveHit(
         evidence=EvidenceState.VERIFIED,
@@ -164,16 +175,38 @@ def test_affinity_floor_allows_strong_fit_low_percentile():
         similarity=1.0,
         reasons=["ok"],
     )
-    # Live Lisbon: affinity 0.74, percentile ~23% → ALLOW via floor
-    verdict, _, pct, reasons = scorer.item_from_resolve_and_score(
+    verdict, _, pct, _reasons = scorer.item_from_resolve_and_score(
         hit=hit,
         scored={"affinity": 0.74, "summary": None},
         anchor_affinities=[0.9] * 38 + [0.5] * 12,  # beats 12/50 = 0.24
         evaluation_status=EvaluationStatus.COMPLETED,
     )
-    assert pct is not None and pct < 0.40
-    assert verdict == ItemVerdict.ALLOW
-    assert any("absolute taste fit" in r for r in reasons)
+    assert pct is not None and pct < 0.35
+    assert verdict == ItemVerdict.REWRITE
+
+
+def test_bar_only_snob_rejected():
+    from app.category import is_dinner_pool_eligible
+
+    assert not is_restaurant_like(
+        {"name": "Snob Bar", "properties": {"primary_genre": "Bar"}}
+    )
+    # Noisy Qloo genre must not admit bare "* Bar" names into the dinner pool.
+    assert not is_dinner_pool_eligible(
+        {"name": "Snob Bar", "properties": {"primary_genre": "Restaurant"}}
+    )
+    assert not is_dinner_pool_eligible(
+        {"name": "Café Janis", "properties": {"primary_genre": "Restaurant"}}
+    )
+
+
+def test_taberna_allowed_as_dinner():
+    assert is_restaurant_like(
+        {
+            "name": "Boutique Taberna",
+            "properties": {"primary_genre": "Portuguese Restaurant"},
+        }
+    )
 
 
 def test_join_messages_no_double_punctuation():
@@ -236,12 +269,16 @@ def test_nyc_preset_uses_new_york_not_lisbon():
     assert len(lisbon["seed_queries"]) >= 3
 
 
-def test_stress_inject_claims_lisbon_neighbourhoods():
+def test_stress_inject_keepers_and_lisbon_neighbourhoods():
     from app.presets import get_preset, inject_candidates
 
     preset = get_preset("stress-lisbon-live")
     assert preset is not None
     cands = inject_candidates(preset)
+    names = [c.name for c in cands]
+    assert "A Cevicheria" in names
+    assert "Cervejaria Ramiro" in names
+    assert "Prado" not in names
     paris = next(c for c in cands if "Comptoir" in c.name)
     assert paris.neighbourhood == "Chiado"
     assert "Paris" not in (paris.neighbourhood or "")

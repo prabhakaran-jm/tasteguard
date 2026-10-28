@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from app.category import is_restaurant_like
+from app.category import is_dinner_pool_eligible, is_restaurant_like
 from app.config import Settings, get_settings
 from app.geo import LatLng, extract_address, extract_latlng, extract_locality, haversine_km
 from app.models import (
@@ -268,14 +268,7 @@ class AnchorScorer:
         percentile = self.relative_percentile(affinity, anchor_affinities)
         cutoff = self.settings.allow_anchor_percentile
         band = self.settings.allow_borderline_band
-        floor = self.settings.allow_affinity_floor
         if percentile >= cutoff:
-            return ItemVerdict.ALLOW, affinity, percentile, reasons
-        if affinity >= floor:
-            reasons.append(
-                f"Strong absolute taste fit ({affinity:.2f} ≥ {floor:.2f}) "
-                f"despite beating only {percentile:.0%} of anchors — allowed"
-            )
             return ItemVerdict.ALLOW, affinity, percentile, reasons
         if percentile >= cutoff - band:
             reasons.append(
@@ -285,7 +278,7 @@ class AnchorScorer:
             return ItemVerdict.ALLOW, affinity, percentile, reasons
         reasons.append(
             f"Beats {percentile:.0%} of in-city restaurant anchors "
-            f"(needs {cutoff:.0%}; affinity {affinity:.2f} < floor {floor:.2f})"
+            f"(needs {cutoff:.0%})"
         )
         return ItemVerdict.REWRITE, affinity, percentile, reasons
 
@@ -334,7 +327,8 @@ class AnchorScorer:
         alts: list[Alternative] = []
         seen: set[str] = set()
         for raw in raw_rows:
-            if not is_restaurant_like(raw):
+            # Repair pool: stricter than anchors — require clear dinner metadata.
+            if not is_dinner_pool_eligible(raw):
                 continue
             loc = extract_latlng(raw)
             if loc is None:
@@ -357,14 +351,14 @@ class AnchorScorer:
                     explainability_summary=summarize_explainability(
                         explainability_of(raw), id_labels
                     ),
-                    replacement_reason="Qloo in-city restaurant alternative",
+                    replacement_reason="Qloo in-city dinner restaurant alternative",
                 )
             )
             if len(alts) >= take:
                 break
         if not alts:
             logger.warning(
-                "No restaurant-like alternatives after category/geo filter for city=%s",
+                "No dinner-pool alternatives after category/geo filter for city=%s",
                 city,
             )
         return alts

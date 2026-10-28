@@ -27,13 +27,10 @@ class Settings(BaseSettings):
 
     anchor_floor: int = 10
     anchor_target: int = 30
-    # Relative position among anchors (product policy; calibrate after probes).
+    # Relative position among anchors (product policy).
     allow_anchor_percentile: float = 0.40
     # Soft band: within this of the cutoff → ALLOW with a borderline note.
     allow_borderline_band: float = 0.05
-    # Absolute affinity floor: strong taste fit can ALLOW even if percentile is low
-    # (keeps known good venues like Prado when multi-seed anchors compress ranks).
-    allow_affinity_floor: float = 0.72
 
     daily_call_cap: int = 200
     per_ip_hourly_cap: int = 30

@@ -131,7 +131,8 @@ def presets() -> dict[str, Any]:
     return {
         "presets": list_presets(),
         "default_preset_id": "stress-lisbon-recorded",
-        "mode": "live",
+        # Default preset is the recorded stress replay; live runs opt in explicitly.
+        "mode": "recorded",
     }
 
 

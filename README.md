@@ -48,8 +48,9 @@ python -m app evaluate --json -c "Cervejaria Ramiro" -c "The French Laundry"
 # Equivalent: python -m app.cli evaluate ...
 ```
 
-Prints `evaluation_status` (`completed` / `unavailable` / `partial`) and `policy_verdict` (`PASS` / `FAIL` only when completed).  
-Affinity cutoffs are **anchor-relative product policy** (default: beat 40% of in-city restaurant anchors).
+Prints `evaluation_status` (`completed` / `unavailable` / `partial`) and `policy_verdict` (`PASS` / `FAIL` only when completed).
+
+**Taste policy (product policy, not an official Qloo cutoff):** an item is `ALLOW` when it beats **≥40%** of the in-city restaurant anchor set (with a ±5% borderline band). `PASS` requires exactly N `ALLOW` restaurants — unknowns and rewrites fail closed.
 
 ## Gemini demo + closed-set repair (Step 5)
 
@@ -62,9 +63,9 @@ python -m app demo --json -s artist:Radiohead --max-rounds 3
 
 Flow:
 
-1. **Unguarded:** Gemini Flash, no tools → structured place list (name + neighbourhood)
-2. **TasteGuard evaluate** → evidence + allow/rewrite/unknown + PASS/FAIL
-3. **Closed-set repair** (max 3): agent may only pick Qloo alternative `entity_id`s from the FAIL pool, then re-evaluate
+1. **Propose:** live presets call Gemini (no tools) for a structured place list. Stress presets use an **injected test list** (not Gemini) so wrong-city catches are reproducible.
+2. **TasteGuard evaluate** → Qloo resolve + affinity vs city anchors → allow/rewrite/unknown + PASS/FAIL
+3. **Closed-set repair** (max 3): Gemini may only pick Qloo alternative `entity_id`s from the FAIL pool (function-style closed set). If Gemini returns invalid IDs, the system falls back to top-affinity pool picks, then re-evaluates.
 
 ## Demo UI (Step 6)
 

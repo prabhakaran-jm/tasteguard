@@ -1,83 +1,167 @@
 {
   "preset_id": "stress-lisbon-recorded",
   "mode": "recorded",
-  "note": "Illustrative example built to demonstrate the catch+repair narrative. Re-record from a successful live stress run before treating as a fidelity replay.",
+  "note": "Captured from a live stress-lisbon-live PASS. Entity IDs scrubbed; affinities/percentiles from that live Qloo run. Injected list is not Gemini.",
   "propose": {
     "candidates": [
-      {"name": "Prado", "neighbourhood": "Sé"},
-      {"name": "O Velho Eurico", "neighbourhood": "Mouraria"},
-      {"name": "Le Comptoir du Relais", "neighbourhood": "Chiado"},
-      {"name": "Fortaleza do Guincho", "neighbourhood": "Bairro Alto"},
-      {"name": "Casa Azul da Lua Fictícia", "neighbourhood": "Alfama"}
+      {
+        "name": "A Cevicheria",
+        "neighbourhood": "Príncipe Real",
+        "address": null,
+        "notes": null,
+        "entity_id": null,
+        "pinned_distance_km": null,
+        "pinned_locality": null
+      },
+      {
+        "name": "Cervejaria Ramiro",
+        "neighbourhood": "Intendente",
+        "address": null,
+        "notes": null,
+        "entity_id": null,
+        "pinned_distance_km": null,
+        "pinned_locality": null
+      },
+      {
+        "name": "Le Comptoir du Relais",
+        "neighbourhood": "Chiado",
+        "address": null,
+        "notes": null,
+        "entity_id": null,
+        "pinned_distance_km": null,
+        "pinned_locality": null
+      },
+      {
+        "name": "Fortaleza do Guincho",
+        "neighbourhood": "Bairro Alto",
+        "address": null,
+        "notes": null,
+        "entity_id": null,
+        "pinned_distance_km": null,
+        "pinned_locality": null
+      },
+      {
+        "name": "Casa Azul da Lua Fictícia",
+        "neighbourhood": "Alfama",
+        "address": null,
+        "notes": null,
+        "entity_id": null,
+        "pinned_distance_km": null,
+        "pinned_locality": null
+      }
     ]
   },
   "evaluate": {
     "evaluation_status": "completed",
     "policy_verdict": "FAIL",
     "city": "Lisbon",
-    "anchor_count": 24,
-    "message": "Le Comptoir du Relais: Claimed Chiado; Qloo places 'Le Comptoir du Relais' 1,452 km away in Paris. Fortaleza do Guincho: Claimed Bairro Alto; Qloo places 'Fortaleza do Guincho' 29 km away in Cresmina. Casa Azul da Lua Fictícia: No confident Qloo match. 2/5 ALLOW — need 5 validated restaurants to PASS.",
     "candidates": [
       {
-        "input": {"name": "Prado", "neighbourhood": "Sé"},
+        "input": {
+          "name": "A Cevicheria",
+          "neighbourhood": "Príncipe Real",
+          "address": null,
+          "notes": null,
+          "entity_id": null,
+          "pinned_distance_km": null,
+          "pinned_locality": null
+        },
         "evidence": "verified",
         "item_verdict": "allow",
-        "matched_name": "Prado",
-        "entity_id": "rec-prado",
-        "distance_km": 1.34,
-        "affinity": 0.814,
-        "anchor_percentile": 0.875,
-        "explainability": {"Radiohead": 0.42, "There Will Be Blood": 0.31, "Aesop": 0.18},
-        "explainability_summary": "Strongest contributing interest: Radiohead (0.42)",
+        "matched_name": "A Cevicheria",
+        "entity_id": "rec-2e684764a66f",
+        "distance_km": 1.0006220338478606,
+        "affinity": 0.8207024146173469,
+        "anchor_percentile": 1.0,
+        "explainability": {
+          "70CAE5BF-2F4C-445C-A3E5-4EDACFC3591C": 0.2705754270592026,
+          "AB5E9CA9-E7A4-4D68-A641-FE2276C1C103": 0.2524592040134663,
+          "32F867B9-E6DF-44C3-BCE4-40160C7ED5E4": 0.24332505307598087,
+          "09E2094A-E17B-4039-9C29-980A1C830024": 0.23364031585135012
+        },
+        "explainability_summary": "Strongest contributing interest: Radiohead (0.27)",
         "category_ok": true,
-        "reasons": ["Matched Qloo place 'Prado' (1.3 km from Lisbon)"],
+        "reasons": [
+          "Matched Qloo place 'A Cevicheria' (1.0 km from Lisbon)"
+        ],
         "kept_unverified": false
       },
       {
-        "input": {"name": "O Velho Eurico", "neighbourhood": "Mouraria"},
+        "input": {
+          "name": "Cervejaria Ramiro",
+          "neighbourhood": "Intendente",
+          "address": null,
+          "notes": null,
+          "entity_id": null,
+          "pinned_distance_km": null,
+          "pinned_locality": null
+        },
         "evidence": "verified",
         "item_verdict": "allow",
-        "matched_name": "O Velho Eurico",
-        "entity_id": "rec-eurico",
-        "distance_km": 1.12,
-        "affinity": 0.779,
-        "anchor_percentile": 0.42,
-        "explainability": {"Norwegian Wood": 0.38, "Radiohead": 0.29, "Aesop": 0.22},
-        "explainability_summary": "Strongest contributing interest: Norwegian Wood (0.38)",
+        "matched_name": "Restaurant - Cervejaria Ramiro",
+        "entity_id": "rec-0ccf04cb1688",
+        "distance_km": 0.38319233157589166,
+        "affinity": 0.7508180217434569,
+        "anchor_percentile": 0.46153846153846156,
+        "explainability": {
+          "70CAE5BF-2F4C-445C-A3E5-4EDACFC3591C": 0.26405017016528054,
+          "32F867B9-E6DF-44C3-BCE4-40160C7ED5E4": 0.26061665243923204,
+          "09E2094A-E17B-4039-9C29-980A1C830024": 0.24217794733882642,
+          "AB5E9CA9-E7A4-4D68-A641-FE2276C1C103": 0.23315523005666094
+        },
+        "explainability_summary": "Strongest contributing interest: Radiohead (0.26)",
         "category_ok": true,
-        "reasons": ["Matched Qloo place 'O Velho Eurico' (1.1 km from Lisbon)"],
+        "reasons": [
+          "Matched Qloo place 'Restaurant - Cervejaria Ramiro' (0.4 km from Lisbon)"
+        ],
         "kept_unverified": false
       },
       {
-        "input": {"name": "Le Comptoir du Relais", "neighbourhood": "Chiado"},
+        "input": {
+          "name": "Le Comptoir du Relais",
+          "neighbourhood": "Chiado",
+          "address": null,
+          "notes": null,
+          "entity_id": null,
+          "pinned_distance_km": null,
+          "pinned_locality": null
+        },
         "evidence": "mismatch",
         "item_verdict": "rewrite",
-        "matched_name": "Le Comptoir du Relais",
-        "entity_id": "rec-paris",
-        "distance_km": 1452.0,
+        "matched_name": "Le comptoir du Relais",
+        "entity_id": "rec-b75b05e4648d",
+        "distance_km": 1451.8883445063107,
         "affinity": null,
         "anchor_percentile": null,
         "explainability": {},
         "explainability_summary": null,
         "category_ok": true,
         "reasons": [
-          "Claimed Chiado; Qloo places 'Le Comptoir du Relais' 1452 km away in Paris",
+          "Claimed Chiado; Qloo places 'Le comptoir du Relais' 1452 km away in 6th Arrondissement",
           "No in-city name match found"
         ],
         "kept_unverified": false
       },
       {
-        "input": {"name": "Fortaleza do Guincho", "neighbourhood": "Bairro Alto"},
+        "input": {
+          "name": "Fortaleza do Guincho",
+          "neighbourhood": "Bairro Alto",
+          "address": null,
+          "notes": null,
+          "entity_id": null,
+          "pinned_distance_km": null,
+          "pinned_locality": null
+        },
         "evidence": "mismatch",
         "item_verdict": "rewrite",
         "matched_name": "Fortaleza do Guincho",
-        "entity_id": "rec-cascais",
-        "distance_km": 29.2,
+        "entity_id": "rec-33745f6cd4f7",
+        "distance_km": 29.219405902259314,
         "affinity": null,
         "anchor_percentile": null,
         "explainability": {},
         "explainability_summary": null,
-        "category_ok": true,
+        "category_ok": false,
         "reasons": [
           "Claimed Bairro Alto; Qloo places 'Fortaleza do Guincho' 29.2 km away in Cresmina",
           "No in-city name match found"
@@ -85,7 +169,15 @@
         "kept_unverified": false
       },
       {
-        "input": {"name": "Casa Azul da Lua Fictícia", "neighbourhood": "Alfama"},
+        "input": {
+          "name": "Casa Azul da Lua Fictícia",
+          "neighbourhood": "Alfama",
+          "address": null,
+          "notes": null,
+          "entity_id": null,
+          "pinned_distance_km": null,
+          "pinned_locality": null
+        },
         "evidence": "unknown",
         "item_verdict": "unknown",
         "matched_name": null,
@@ -96,154 +188,346 @@
         "explainability": {},
         "explainability_summary": null,
         "category_ok": null,
-        "reasons": ["No confident Qloo match"],
+        "reasons": [
+          "No confident Qloo match"
+        ],
         "kept_unverified": true
       }
     ],
     "alternatives": [
       {
-        "entity_id": "rec-alt-2",
-        "name": "Taberna do Calhau",
-        "affinity": 0.85,
-        "distance_km": 3.7,
-        "locality": "Mouraria",
-        "explainability_summary": "Strongest contributing interest: There Will Be Blood (0.44)",
+        "entity_id": "rec-e8c3aac81c3d",
+        "name": "Barbica",
+        "affinity": 0.8311747332410132,
+        "distance_km": 1.6108891256889548,
+        "address": "Rua dos Cordoeiros 10 1200-057 Lisboa Portugal",
+        "locality": "São Paulo",
+        "explainability_summary": "Strongest contributing interest: Radiohead (0.27)",
         "replacement_reason": "Qloo in-city restaurant alternative (covers unverifiable and/or off-taste slots)"
       },
       {
-        "entity_id": "rec-alt-3",
-        "name": "Senhor Uva",
-        "affinity": 0.82,
-        "distance_km": 1.75,
-        "locality": "Estrela",
-        "explainability_summary": "Strongest contributing interest: Aesop (0.41)",
+        "entity_id": "rec-90907f76c845",
+        "name": "Mar ao Carmo",
+        "affinity": 0.8304209744895271,
+        "distance_km": 1.1591732874472778,
+        "address": "Largo do Carmo 21 1200-092 Lisboa Portugal",
+        "locality": "Sacramento",
+        "explainability_summary": "Strongest contributing interest: Radiohead (0.27)",
         "replacement_reason": "Qloo in-city restaurant alternative (covers unverifiable and/or off-taste slots)"
       },
       {
-        "entity_id": "rec-alt-4",
-        "name": "A Cevicheria",
-        "affinity": 0.81,
-        "distance_km": 1.9,
-        "locality": "Príncipe Real",
-        "explainability_summary": "Strongest contributing interest: Radiohead (0.39)",
+        "entity_id": "rec-d689f46c400e",
+        "name": "Carmo",
+        "affinity": 0.8277019285129834,
+        "distance_km": 1.184613736289468,
+        "address": "Largo do Carmo 11 1200-022 Lisboa Portugal",
+        "locality": "Sacramento",
+        "explainability_summary": "Strongest contributing interest: Radiohead (0.28)",
         "replacement_reason": "Qloo in-city restaurant alternative (covers unverifiable and/or off-taste slots)"
       },
       {
-        "entity_id": "rec-alt-5",
-        "name": "Cervejaria Ramiro",
-        "affinity": 0.80,
-        "distance_km": 2.1,
-        "locality": "Intendente",
-        "explainability_summary": "Strongest contributing interest: Norwegian Wood (0.36)",
+        "entity_id": "rec-d408a5a7ede6",
+        "name": "Água no Bico",
+        "affinity": 0.8265083478301763,
+        "distance_km": 1.7540509434672347,
+        "address": "R. das Gaivotas 8 1200-202 Lisboa Portugal",
+        "locality": "São Bento",
+        "explainability_summary": "Strongest contributing interest: Radiohead (0.27)",
         "replacement_reason": "Qloo in-city restaurant alternative (covers unverifiable and/or off-taste slots)"
       },
       {
-        "entity_id": "rec-alt-6",
-        "name": "Belcanto",
-        "affinity": 0.78,
-        "distance_km": 0.9,
+        "entity_id": "rec-3fade2485afa",
+        "name": "Cais das Colunas",
+        "affinity": 0.8262847635883308,
+        "distance_km": 1.2466007891828959,
+        "address": "R. da Vitória 1100-044 Lisboa Portugal",
         "locality": "Chiado",
-        "explainability_summary": "Strongest contributing interest: Aesop (0.33)",
+        "explainability_summary": "Strongest contributing interest: Radiohead (0.28)",
+        "replacement_reason": "Qloo in-city restaurant alternative (covers unverifiable and/or off-taste slots)"
+      },
+      {
+        "entity_id": "rec-2364f1e88039",
+        "name": "Solar do Duque",
+        "affinity": 0.8259798212513073,
+        "distance_km": 1.0146125404450033,
+        "address": "R. do Duque 67 1200-158 Lisboa Portugal",
+        "locality": "Sacramento",
+        "explainability_summary": "Strongest contributing interest: Radiohead (0.27)",
+        "replacement_reason": "Qloo in-city restaurant alternative (covers unverifiable and/or off-taste slots)"
+      },
+      {
+        "entity_id": "rec-51fa4644ec0d",
+        "name": "Os Amigos Da Severa",
+        "affinity": 0.8257286011943131,
+        "distance_km": 0.7856383713491878,
+        "address": "R. do Capelão 32 1100-341 Lisboa Portugal",
+        "locality": "Socorro",
+        "explainability_summary": "Strongest contributing interest: Radiohead (0.28)",
+        "replacement_reason": "Qloo in-city restaurant alternative (covers unverifiable and/or off-taste slots)"
+      },
+      {
+        "entity_id": "rec-3e555da4a8a1",
+        "name": "the mill",
+        "affinity": 0.8246714592316425,
+        "distance_km": 1.5726202002640512,
+        "address": "R. do Poço dos Negros 1 1200-335 Lisboa Portugal",
+        "locality": "Santa Catarina",
+        "explainability_summary": "Strongest contributing interest: Radiohead (0.26)",
+        "replacement_reason": "Qloo in-city restaurant alternative (covers unverifiable and/or off-taste slots)"
+      },
+      {
+        "entity_id": "rec-fb5c6539c34c",
+        "name": "Sol e Pesca",
+        "affinity": 0.8234291806346552,
+        "distance_km": 1.7016385878079079,
+        "address": "R. Nova do Carvalho 44 1200-019 Lisboa Portugal",
+        "locality": "Cais do Sodré",
+        "explainability_summary": "Strongest contributing interest: Radiohead (0.28)",
+        "replacement_reason": "Qloo in-city restaurant alternative (covers unverifiable and/or off-taste slots)"
+      },
+      {
+        "entity_id": "rec-89b79e57df8c",
+        "name": "Boa Vida",
+        "affinity": 0.8206961791592041,
+        "distance_km": 1.7561175457026568,
+        "address": "R. do Poço dos Negros 119 1200-337 Lisboa Portugal",
+        "locality": "São Bento",
+        "explainability_summary": "Strongest contributing interest: Radiohead (0.27)",
+        "replacement_reason": "Qloo in-city restaurant alternative (covers unverifiable and/or off-taste slots)"
+      },
+      {
+        "entity_id": "rec-e03e1ef39822",
+        "name": "o Limbo",
+        "affinity": 0.8206651191707601,
+        "distance_km": 1.5647389822979003,
+        "address": "R. Morais Soares n°7 A 1900-339 Lisboa Portugal",
+        "locality": "São João",
+        "explainability_summary": "Strongest contributing interest: Radiohead (0.28)",
+        "replacement_reason": "Qloo in-city restaurant alternative (covers unverifiable and/or off-taste slots)"
+      },
+      {
+        "entity_id": "rec-0a37539180f0",
+        "name": "A Tasca do Chico",
+        "affinity": 0.8187695426137288,
+        "distance_km": 1.2591114321802221,
+        "address": "R. do Diário de Notícias 39 1200-141 Lisboa Portugal",
+        "locality": "Encarnação",
+        "explainability_summary": "Strongest contributing interest: Radiohead (0.27)",
+        "replacement_reason": "Qloo in-city restaurant alternative (covers unverifiable and/or off-taste slots)"
+      },
+      {
+        "entity_id": "rec-c50e4da1b4f9",
+        "name": "Adega Machado",
+        "affinity": 0.8184123181911991,
+        "distance_km": 1.1794613355102697,
+        "address": "R. do Norte 91 1200-284 Lisboa Portugal",
+        "locality": "Encarnação",
+        "explainability_summary": "Strongest contributing interest: Radiohead (0.28)",
+        "replacement_reason": "Qloo in-city restaurant alternative (covers unverifiable and/or off-taste slots)"
+      },
+      {
+        "entity_id": "rec-bc71cd65ce08",
+        "name": "Pequeno Café e Bistrô - Arroios",
+        "affinity": 0.8180817663690402,
+        "distance_km": 1.5641140121040236,
+        "address": "Mercado de Arroios loja 5 1900-221 Lisboa Portugal",
+        "locality": "Saldanha",
+        "explainability_summary": "Strongest contributing interest: Radiohead (0.28)",
+        "replacement_reason": "Qloo in-city restaurant alternative (covers unverifiable and/or off-taste slots)"
+      },
+      {
+        "entity_id": "rec-4455dca5ad74",
+        "name": "Solar dos Bicos",
+        "affinity": 0.8166265904057223,
+        "distance_km": 1.5915370501650805,
+        "address": "R. dos Bacalhoeiros 8A 1100-070 Lisboa Portugal",
+        "locality": "Sé",
+        "explainability_summary": "Strongest contributing interest: Radiohead (0.27)",
         "replacement_reason": "Qloo in-city restaurant alternative (covers unverifiable and/or off-taste slots)"
       }
     ],
-    "notes": {"expected_count": 5, "anchor_city": "Lisbon"}
+    "anchor_count": 26,
+    "message": "Le Comptoir du Relais: No in-city name match found. Fortaleza do Guincho: No in-city name match found. Casa Azul da Lua Fictícia: No confident Qloo match. 2/5 ALLOW — need 5 validated restaurants to PASS.",
+    "notes": {
+      "anchor_city": "Lisbon",
+      "captured_from": "live stress-lisbon-live",
+      "entity_ids": "scrubbed for public fixture"
+    }
   },
   "repair": {
     "final": {
       "evaluation_status": "completed",
       "policy_verdict": "PASS",
       "city": "Lisbon",
-      "anchor_count": 26,
-      "message": "Repaired in 1 round: Le Comptoir du Relais → Taberna do Calhau; Fortaleza do Guincho → A Cevicheria; Casa Azul da Lua Fictícia → Cervejaria Ramiro. PASS — 5 validated restaurants vs Lisbon anchors.",
       "candidates": [
         {
-          "input": {"name": "Prado", "neighbourhood": "Sé"},
-          "evidence": "verified",
-          "item_verdict": "allow",
-          "matched_name": "Prado",
-          "entity_id": "rec-prado",
-          "distance_km": 1.34,
-          "affinity": 0.814,
-          "anchor_percentile": 0.875,
-          "explainability": {"Radiohead": 0.42, "There Will Be Blood": 0.31, "Aesop": 0.18},
-          "explainability_summary": "Strongest contributing interest: Radiohead (0.42)",
-          "category_ok": true,
-          "reasons": ["Matched Qloo place 'Prado' (1.3 km from Lisbon)", "Kept after TasteGuard allow"],
-          "kept_unverified": false
-        },
-        {
-          "input": {"name": "O Velho Eurico", "neighbourhood": "Mouraria"},
-          "evidence": "verified",
-          "item_verdict": "allow",
-          "matched_name": "O Velho Eurico",
-          "entity_id": "rec-eurico",
-          "distance_km": 1.12,
-          "affinity": 0.779,
-          "anchor_percentile": 0.42,
-          "explainability": {"Norwegian Wood": 0.38, "Radiohead": 0.29, "Aesop": 0.22},
-          "explainability_summary": "Strongest contributing interest: Norwegian Wood (0.38)",
-          "category_ok": true,
-          "reasons": ["Matched Qloo place 'O Velho Eurico' (1.1 km from Lisbon)", "Kept after TasteGuard allow"],
-          "kept_unverified": false
-        },
-        {
-          "input": {"name": "Taberna do Calhau", "neighbourhood": "Mouraria"},
-          "evidence": "verified",
-          "item_verdict": "allow",
-          "matched_name": "Taberna do Calhau",
-          "entity_id": "rec-alt-2",
-          "distance_km": 3.7,
-          "affinity": 0.85,
-          "anchor_percentile": 0.96,
-          "explainability": {"There Will Be Blood": 0.44, "Radiohead": 0.28},
-          "explainability_summary": "Strongest contributing interest: There Will Be Blood (0.44)",
-          "category_ok": true,
-          "reasons": ["Matched Qloo place 'Taberna do Calhau' (3.7 km from Lisbon)"],
-          "kept_unverified": false
-        },
-        {
-          "input": {"name": "A Cevicheria", "neighbourhood": "Príncipe Real"},
+          "input": {
+            "name": "A Cevicheria",
+            "neighbourhood": "Príncipe Real",
+            "address": null,
+            "notes": "Kept after TasteGuard allow",
+            "entity_id": "rec-2e684764a66f",
+            "pinned_distance_km": 1.0006220338478606,
+            "pinned_locality": "Príncipe Real"
+          },
           "evidence": "verified",
           "item_verdict": "allow",
           "matched_name": "A Cevicheria",
-          "entity_id": "rec-alt-4",
-          "distance_km": 1.9,
-          "affinity": 0.81,
-          "anchor_percentile": 0.83,
-          "explainability": {"Radiohead": 0.39, "Aesop": 0.27},
-          "explainability_summary": "Strongest contributing interest: Radiohead (0.39)",
+          "entity_id": "rec-2e684764a66f",
+          "distance_km": 1.0006220338478606,
+          "affinity": 0.8207024146173469,
+          "anchor_percentile": 1.0,
+          "explainability": {
+            "70CAE5BF-2F4C-445C-A3E5-4EDACFC3591C": 0.2705754270592026,
+            "AB5E9CA9-E7A4-4D68-A641-FE2276C1C103": 0.2524592040134663,
+            "32F867B9-E6DF-44C3-BCE4-40160C7ED5E4": 0.24332505307598087,
+            "09E2094A-E17B-4039-9C29-980A1C830024": 0.23364031585135012
+          },
+          "explainability_summary": "Strongest contributing interest: Radiohead (0.27)",
           "category_ok": true,
-          "reasons": ["Matched Qloo place 'A Cevicheria' (1.9 km from Lisbon)"],
+          "reasons": [
+            "Pinned Qloo restaurant 'A Cevicheria' (entity 2E684764…)"
+          ],
           "kept_unverified": false
         },
         {
-          "input": {"name": "Cervejaria Ramiro", "neighbourhood": "Intendente"},
+          "input": {
+            "name": "Restaurant - Cervejaria Ramiro",
+            "neighbourhood": "Intendente",
+            "address": null,
+            "notes": "Kept after TasteGuard allow",
+            "entity_id": "rec-0ccf04cb1688",
+            "pinned_distance_km": 0.38319233157589166,
+            "pinned_locality": "Intendente"
+          },
           "evidence": "verified",
           "item_verdict": "allow",
-          "matched_name": "Cervejaria Ramiro",
-          "entity_id": "rec-alt-5",
-          "distance_km": 2.1,
-          "affinity": 0.80,
-          "anchor_percentile": 0.79,
-          "explainability": {"Norwegian Wood": 0.36, "There Will Be Blood": 0.30},
-          "explainability_summary": "Strongest contributing interest: Norwegian Wood (0.36)",
+          "matched_name": "Restaurant - Cervejaria Ramiro",
+          "entity_id": "rec-0ccf04cb1688",
+          "distance_km": 0.38319233157589166,
+          "affinity": 0.7508180217434569,
+          "anchor_percentile": 0.4782608695652174,
+          "explainability": {
+            "70CAE5BF-2F4C-445C-A3E5-4EDACFC3591C": 0.26405017016528054,
+            "32F867B9-E6DF-44C3-BCE4-40160C7ED5E4": 0.26061665243923204,
+            "09E2094A-E17B-4039-9C29-980A1C830024": 0.24217794733882642,
+            "AB5E9CA9-E7A4-4D68-A641-FE2276C1C103": 0.23315523005666094
+          },
+          "explainability_summary": "Strongest contributing interest: Radiohead (0.26)",
           "category_ok": true,
-          "reasons": ["Matched Qloo place 'Cervejaria Ramiro' (2.1 km from Lisbon)"],
+          "reasons": [
+            "Pinned Qloo restaurant 'Restaurant - Cervejaria Ramiro' (entity 0CCF04CB…)"
+          ],
+          "kept_unverified": false
+        },
+        {
+          "input": {
+            "name": "Barbica",
+            "neighbourhood": "São Paulo",
+            "address": "Rua dos Cordoeiros 10 1200-057 Lisboa Portugal",
+            "notes": "Closed-set repair round 1: Qloo in-city restaurant alternative (covers unverifiable and/or off-taste slots)",
+            "entity_id": "rec-e8c3aac81c3d",
+            "pinned_distance_km": 1.6108891256889548,
+            "pinned_locality": "São Paulo"
+          },
+          "evidence": "verified",
+          "item_verdict": "allow",
+          "matched_name": "Barbica",
+          "entity_id": "rec-e8c3aac81c3d",
+          "distance_km": 1.6108891256889548,
+          "affinity": 0.8311747332410132,
+          "anchor_percentile": 1.0,
+          "explainability": {
+            "70CAE5BF-2F4C-445C-A3E5-4EDACFC3591C": 0.2728298696795509,
+            "AB5E9CA9-E7A4-4D68-A641-FE2276C1C103": 0.2550458720580884,
+            "09E2094A-E17B-4039-9C29-980A1C830024": 0.2429984329511587,
+            "32F867B9-E6DF-44C3-BCE4-40160C7ED5E4": 0.22912582531120199
+          },
+          "explainability_summary": "Strongest contributing interest: Radiohead (0.27)",
+          "category_ok": true,
+          "reasons": [
+            "Pinned Qloo restaurant 'Barbica' (entity E8C3AAC8…)"
+          ],
+          "kept_unverified": false
+        },
+        {
+          "input": {
+            "name": "Mar ao Carmo",
+            "neighbourhood": "Sacramento",
+            "address": "Largo do Carmo 21 1200-092 Lisboa Portugal",
+            "notes": "Closed-set repair round 1: Qloo in-city restaurant alternative (covers unverifiable and/or off-taste slots)",
+            "entity_id": "rec-90907f76c845",
+            "pinned_distance_km": 1.1591732874472778,
+            "pinned_locality": "Sacramento"
+          },
+          "evidence": "verified",
+          "item_verdict": "allow",
+          "matched_name": "Mar ao Carmo",
+          "entity_id": "rec-90907f76c845",
+          "distance_km": 1.1591732874472778,
+          "affinity": 0.8304209744895271,
+          "anchor_percentile": 1.0,
+          "explainability": {
+            "70CAE5BF-2F4C-445C-A3E5-4EDACFC3591C": 0.273661118780055,
+            "09E2094A-E17B-4039-9C29-980A1C830024": 0.25390085470765333,
+            "32F867B9-E6DF-44C3-BCE4-40160C7ED5E4": 0.23757973040030012,
+            "AB5E9CA9-E7A4-4D68-A641-FE2276C1C103": 0.2348582961119915
+          },
+          "explainability_summary": "Strongest contributing interest: Radiohead (0.27)",
+          "category_ok": true,
+          "reasons": [
+            "Pinned Qloo restaurant 'Mar ao Carmo' (entity 90907F76…)"
+          ],
+          "kept_unverified": false
+        },
+        {
+          "input": {
+            "name": "Carmo",
+            "neighbourhood": "Sacramento",
+            "address": "Largo do Carmo 11 1200-022 Lisboa Portugal",
+            "notes": "Closed-set repair round 1: Qloo in-city restaurant alternative (covers unverifiable and/or off-taste slots)",
+            "entity_id": "rec-d689f46c400e",
+            "pinned_distance_km": 1.184613736289468,
+            "pinned_locality": "Sacramento"
+          },
+          "evidence": "verified",
+          "item_verdict": "allow",
+          "matched_name": "Carmo",
+          "entity_id": "rec-d689f46c400e",
+          "distance_km": 1.184613736289468,
+          "affinity": 0.8277019285129834,
+          "anchor_percentile": 1.0,
+          "explainability": {
+            "70CAE5BF-2F4C-445C-A3E5-4EDACFC3591C": 0.28010634046359945,
+            "AB5E9CA9-E7A4-4D68-A641-FE2276C1C103": 0.24394717346779324,
+            "32F867B9-E6DF-44C3-BCE4-40160C7ED5E4": 0.23856227998360383,
+            "09E2094A-E17B-4039-9C29-980A1C830024": 0.23738420608500357
+          },
+          "explainability_summary": "Strongest contributing interest: Radiohead (0.28)",
+          "category_ok": true,
+          "reasons": [
+            "Pinned Qloo restaurant 'Carmo' (entity D689F46C…)"
+          ],
           "kept_unverified": false
         }
       ],
       "alternatives": [],
+      "anchor_count": 23,
+      "message": "Repaired in 1 round: Le Comptoir du Relais → Barbica; Fortaleza do Guincho → Mar ao Carmo; Casa Azul da Lua Fictícia → Carmo. PASS — 5 validated restaurants vs Lisbon anchors.",
       "notes": {
+        "anchor_city": "Lisbon",
         "repair_round": 1,
         "expected_count": 5,
         "kept_allows": 2,
-        "anchor_city": "Lisbon",
         "replaced": [
-          "Le Comptoir du Relais → Taberna do Calhau",
-          "Fortaleza do Guincho → A Cevicheria",
-          "Casa Azul da Lua Fictícia → Cervejaria Ramiro"
-        ]
+          "Le Comptoir du Relais → Barbica",
+          "Fortaleza do Guincho → Mar ao Carmo",
+          "Casa Azul da Lua Fictícia → Carmo"
+        ],
+        "tried_ids_count": 7,
+        "pool_size": 15,
+        "captured_from": "live stress-lisbon-live",
+        "entity_ids": "scrubbed for public fixture"
       }
     },
     "history_len": 2

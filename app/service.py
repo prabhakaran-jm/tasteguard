@@ -114,21 +114,34 @@ class TasteGuardService:
                 if h.entity and h.evidence == EvidenceState.VERIFIED
             ]
 
-            try:
-                anchors = await scorer.build_anchors(
-                    city=request.city,
-                    city_center=request.city_center,
-                    signal_entities=signal_ids,
-                )
-            except QlooError as exc:
-                return EvaluationResult(
-                    evaluation_status=EvaluationStatus.UNAVAILABLE,
-                    city=request.city,
-                    candidates=[],
-                    message=f"Qloo unavailable while building anchors: {exc}",
-                )
+            if request.anchor_entity_ids:
+                from app.resolver import PlaceEntity
 
-            anchor_ids = [a.entity_id for a in anchors]
+                anchor_ids = list(dict.fromkeys(request.anchor_entity_ids))
+                anchors = [
+                    PlaceEntity(
+                        entity_id=eid,
+                        name="",
+                        location=None,
+                        is_restaurant=True,
+                    )
+                    for eid in anchor_ids
+                ]
+            else:
+                try:
+                    anchors = await scorer.build_anchors(
+                        city=request.city,
+                        city_center=request.city_center,
+                        signal_entities=signal_ids,
+                    )
+                except QlooError as exc:
+                    return EvaluationResult(
+                        evaluation_status=EvaluationStatus.UNAVAILABLE,
+                        city=request.city,
+                        candidates=[],
+                        message=f"Qloo unavailable while building anchors: {exc}",
+                    )
+                anchor_ids = [a.entity_id for a in anchors]
             status, scored_map, note = await scorer.score_shared_pool(
                 signal_entities=signal_ids,
                 candidate_ids=candidate_ids,
@@ -289,6 +302,7 @@ class TasteGuardService:
                     "signal_ids": signal_ids,
                     "signal_labels": labels,
                     "anchor_sample": anchor_ids[:10],
+                    "anchor_ids": anchor_ids,
                     "anchor_city": request.city,
                     "scored_ids": list(scored_map.keys()),
                 },
@@ -329,6 +343,12 @@ class TasteGuardService:
             1,
         )
         tried_ids: set[str] = set(request.exclude_entity_ids or [])
+        # Freeze anchors from the initial evaluation so percentiles do not drift.
+        frozen_anchors: list[str] = list(
+            request.anchor_entity_ids
+            or (baseline.notes or {}).get("anchor_ids")
+            or []
+        )
 
         for round_idx in range(1, max_rounds + 1):
             for c in current.candidates:
@@ -504,6 +524,7 @@ class TasteGuardService:
                 fetch_alternatives=True,
                 expected_count=target_n,
                 exclude_entity_ids=list(tried_ids),
+                anchor_entity_ids=frozen_anchors,
             )
             current = await self.evaluate(working)
             current.notes = {
