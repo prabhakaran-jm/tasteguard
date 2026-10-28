@@ -216,36 +216,16 @@ def explainability_of(entity: dict[str, Any]) -> dict[str, float]:
 
 
 def extract_latlng(entity: dict[str, Any]) -> dict[str, float] | None:
-    props = entity.get("properties") or {}
-    loc = entity.get("location") or props.get("location") or {}
-    for container in (loc, props, entity):
-        if not isinstance(container, dict):
-            continue
-        for lat_k, lon_k in (("lat", "lon"), ("latitude", "longitude"), ("lat", "lng")):
-            if lat_k in container and lon_k in container:
-                try:
-                    return {
-                        "lat": float(container[lat_k]),
-                        "lon": float(container[lon_k]),
-                    }
-                except (TypeError, ValueError):
-                    pass
-        geocode = container.get("geocode")
-        if isinstance(geocode, dict) and "lat" in geocode:
-            try:
-                return {
-                    "lat": float(geocode["lat"]),
-                    "lon": float(geocode.get("lon", geocode.get("lng"))),
-                }
-            except (TypeError, ValueError):
-                pass
-    return None
+    """Probe-friendly wrapper around ``app.geo.extract_latlng``."""
+    from app.geo import extract_latlng as _extract
+
+    point = _extract(entity)
+    if point is None:
+        return None
+    return {"lat": point.lat, "lon": point.lon}
 
 
 def extract_address(entity: dict[str, Any]) -> str | None:
-    props = entity.get("properties") or {}
-    for key in ("address", "formatted_address", "street_address"):
-        val = props.get(key) or entity.get(key)
-        if isinstance(val, str) and val.strip():
-            return val.strip()
-    return None
+    from app.geo import extract_address as _extract
+
+    return _extract(entity)
