@@ -212,3 +212,83 @@ class TasteGuardService:
                     "scored_ids": list(scored_map.keys()),
                 },
             )
+
+    async def repair_until_pass(
+        self,
+        request: EvaluateRequest,
+        *,
+        persona_description: str,
+        max_rounds: int = 3,
+    ) -> tuple[EvaluationResult, list[EvaluationResult]]:
+        """Evaluate, then closed-set repair up to max_rounds until PASS or exhausted.
+
+        Gemini (or affinity-ranked fallback) may only pick entity IDs from the
+        FAIL alternatives pool. Each repair is re-evaluated end-to-end.
+        """
+        from app.gemini_agent import GeminiConcierge
+
+        history: list[EvaluationResult] = []
+        current = await self.evaluate(request)
+        history.append(current)
+
+        if current.policy_verdict == PolicyVerdict.PASS:
+            return current, history
+
+        agent = GeminiConcierge(self.settings)
+        working = request
+
+        for round_idx in range(1, max_rounds + 1):
+            if not current.alternatives:
+                current.message = (
+                    (current.message or "")
+                    + f"; repair round {round_idx} skipped — empty alternative pool"
+                ).lstrip("; ")
+                break
+
+            reasons = [r for c in current.candidates for r in c.reasons][:12]
+            chosen_ids = await agent.repair_from_pool(
+                city=working.city,
+                persona_description=persona_description,
+                fail_reasons=reasons,
+                alternatives=current.alternatives,
+                n=min(5, len(current.alternatives)),
+            )
+            by_id = {a.entity_id: a for a in current.alternatives}
+            repaired: list[CandidateInput] = []
+            for eid in chosen_ids:
+                alt = by_id.get(eid)
+                if not alt:
+                    continue
+                repaired.append(
+                    CandidateInput(
+                        name=alt.name,
+                        neighbourhood=alt.locality,
+                        address=alt.address,
+                        notes=f"Closed-set repair round {round_idx}",
+                    )
+                )
+            if not repaired:
+                current.message = (
+                    (current.message or "")
+                    + f"; repair round {round_idx} produced no valid pool picks"
+                ).lstrip("; ")
+                break
+
+            working = EvaluateRequest(
+                city=working.city,
+                city_center=working.city_center,
+                seed_queries=working.seed_queries,
+                candidates=repaired,
+                fetch_alternatives=True,
+            )
+            current = await self.evaluate(working)
+            current.notes = {
+                **current.notes,
+                "repair_round": round_idx,
+                "chosen_entity_ids": chosen_ids,
+            }
+            history.append(current)
+            if current.policy_verdict == PolicyVerdict.PASS:
+                break
+
+        return current, history

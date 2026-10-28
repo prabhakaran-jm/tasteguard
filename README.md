@@ -50,6 +50,21 @@ python -m app evaluate --json -c "Cervejaria Ramiro" -c "The French Laundry"
 Prints `evaluation_status` (`completed` / `unavailable` / `partial`) and `policy_verdict` (`PASS` / `FAIL` only when completed).  
 Affinity cutoffs are **anchor-relative product policy** (default: beat 40% of in-city restaurant anchors).
 
+## Gemini demo + closed-set repair (Step 5)
+
+Requires `GEMINI_API_KEY` and `QLOO_API_KEY` in `.env`.
+
+```powershell
+python -m app demo -s artist:Radiohead
+python -m app demo --json -s artist:Radiohead --max-rounds 3
+```
+
+Flow:
+
+1. **Unguarded:** Gemini Flash, no tools → structured place list (name + neighbourhood)
+2. **TasteGuard evaluate** → evidence + allow/rewrite/unknown + PASS/FAIL
+3. **Closed-set repair** (max 3): agent may only pick Qloo alternative `entity_id`s from the FAIL pool, then re-evaluate
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
