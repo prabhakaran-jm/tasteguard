@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# Secrets and local env
+.env
+.env.*
+!.env.example
+
+# Agent / IDE (never commit)
+.cursor/
+.idea/
+.vscode/
+
+# Runtime / demo artifacts
+recorded/*
+!recorded/.gitkeep
+probes/probe_report.json
+*.log
+.DS_Store
+agent-tools/
