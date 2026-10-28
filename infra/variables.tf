@@ -43,3 +43,9 @@ variable "max_instances" {
   type        = number
   default     = 3
 }
+
+variable "gemini_model" {
+  type        = string
+  description = "Gemini model id for propose/repair"
+  default     = "gemini-3.8-flash"
+}

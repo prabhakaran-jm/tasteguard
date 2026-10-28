@@ -135,6 +135,11 @@ resource "google_cloud_run_v2_service" "tasteguard" {
         name  = "QLOO_BASE_URL"
         value = "https://hackathon.api.qloo.com"
       }
+
+      env {
+        name  = "GEMINI_MODEL"
+        value = var.gemini_model
+      }
     }
   }
 
