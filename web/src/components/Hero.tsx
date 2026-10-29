@@ -67,10 +67,14 @@ export function Hero({
             from a closed dinner pool.
           </p>
           <p className="guide-line">
-            Recommended: select <strong>Radiohead · Lisbon dinner (live)</strong> →
-            Run live (taste fails + repair). Then play the recorded stress test for
-            the Paris / Cascais catch. Or paste any agent&apos;s list with your
-            own taste seeds.
+            Recommended: start with the default → <strong>Play recorded run</strong>{' '}
+            (~1s: wrong-city + Prado taste miss → repair to PASS). Then compare{' '}
+            <strong>Radiohead</strong> vs <strong>Kendrick</strong> Lisbon live, or
+            paste your own agent list with optional taste seeds.
+          </p>
+          <p className="guide-line guide-proof">
+            Same restaurant, two tastes: Prado fails for a Radiohead fan (26th
+            percentile) and passes for a Kendrick fan (54th).
           </p>
           {blurb || selected?.blurb ? (
             <p className="preset-blurb">{blurb || selected?.blurb}</p>

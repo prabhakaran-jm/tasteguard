@@ -142,7 +142,7 @@ def list_presets() -> list[dict[str, Any]]:
             "city": p["city"],
             "persona": p["persona"],
             "blurb": p.get("blurb") or "",
-            # Keep recorded as one-click FAIL→PASS; Hero copy pushes Radiohead live.
+            # Keep recorded as one-click FAIL→PASS; Hero guide starts there.
             "default": p["id"] == "stress-lisbon-recorded",
         }
         for p in PRESETS.values()

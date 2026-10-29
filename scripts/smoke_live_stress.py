@@ -1,4 +1,4 @@
-"""Five consecutive live Lisbon stress evaluate→repair checks."""
+"""Consecutive live Lisbon stress evaluate→repair checks (N from propose)."""
 
 from __future__ import annotations
 
@@ -49,7 +49,8 @@ def one_run(i: int) -> None:
     final = rep["final"]
     assert final["policy_verdict"] == "PASS", final.get("message")
     names = [c["input"]["name"] for c in final["candidates"]]
-    assert len(names) == 5 and len(set(names)) == 5, names
+    expected_n = len(prop["candidates"])
+    assert len(names) == expected_n and len(set(names)) == expected_n, names
     assert all(c["item_verdict"] == "allow" for c in final["candidates"])
     assert {"A Cevicheria", "Cervejaria Ramiro"} <= set(names)
     print(f"run {i}: PASS {names}")

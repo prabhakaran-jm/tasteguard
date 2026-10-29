@@ -54,7 +54,7 @@ function plainEvidence(s: Scored, showExplainability: boolean, city: string): st
     parts.push(formatDistance(s.distance_km))
   }
   if (s.affinity != null && !Number.isNaN(s.affinity)) {
-    parts.push(`Taste fit ${Math.round(s.affinity * 100)}`)
+    parts.push(`raw Qloo affinity ${Math.round(s.affinity * 100)}`)
   }
   const borderlineReason = s.reasons?.find((r) => /Borderline/i.test(r))
   if (s.anchor_percentile != null && !Number.isNaN(s.anchor_percentile)) {
