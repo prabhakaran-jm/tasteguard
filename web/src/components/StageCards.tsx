@@ -15,6 +15,8 @@ type Scored = {
   reasons?: string[]
 }
 
+export type ResultSource = 'recorded' | 'live_qloo'
+
 type Props = {
   stageLabel: string
   places?: Candidate[]
@@ -23,6 +25,8 @@ type Props = {
   loadingCount?: number
   showExplainability?: boolean
   city?: string
+  /** Honest provenance on TasteGuard result cards. */
+  source?: ResultSource
 }
 
 function formatDistance(km: number): string {
@@ -81,6 +85,10 @@ function verdictLabel(v: string, reasons?: string[]): string {
   return 'Unverified'
 }
 
+function sourceLabel(source: ResultSource): string {
+  return source === 'recorded' ? 'recorded' : 'live_qloo'
+}
+
 export function StageCards({
   stageLabel,
   places,
@@ -89,6 +97,7 @@ export function StageCards({
   loadingCount = 5,
   showExplainability = true,
   city = 'in-city',
+  source,
 }: Props) {
   return (
     <section className="stage-block">
@@ -108,9 +117,16 @@ export function StageCards({
               <article key={`${s.input.name}-${i}`} className={`place-card ${s.item_verdict}`}>
                 <div className="card-top">
                   <h3 className="place-name">{s.input.name}</h3>
-                  <span className={`verdict-chip ${s.item_verdict}`}>
-                    {verdictLabel(s.item_verdict, s.reasons)}
-                  </span>
+                  <div className="card-chips">
+                    {source ? (
+                      <span className={`source-chip ${source}`} title="Result provenance">
+                        {sourceLabel(source)}
+                      </span>
+                    ) : null}
+                    <span className={`verdict-chip ${s.item_verdict}`}>
+                      {verdictLabel(s.item_verdict, s.reasons)}
+                    </span>
+                  </div>
                 </div>
                 <p className="place-meta">{s.input.neighbourhood || '—'}</p>
                 <p className="place-evidence">

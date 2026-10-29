@@ -270,6 +270,33 @@ select {
   align-items: flex-start;
 }
 
+.card-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.source-chip {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  padding: 0.2rem 0.4rem;
+  color: #9aab9e;
+  border: 1px solid rgba(154, 171, 158, 0.45);
+}
+
+.source-chip.recorded {
+  color: #b7c4ba;
+}
+
+.source-chip.live_qloo {
+  color: var(--brass);
+  border-color: rgba(196, 163, 90, 0.45);
+}
+
 .verdict-chip {
   flex-shrink: 0;
   font-size: 0.7rem;

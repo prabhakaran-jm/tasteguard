@@ -239,6 +239,7 @@ export default function App() {
               loadingCount={proposed?.length || 5}
               showExplainability={!hidePerCardExplain}
               city={evalResult?.city || selected?.city}
+              source={mode === 'recorded' ? 'recorded' : 'live_qloo'}
             />
           </div>
 
@@ -294,6 +295,7 @@ export default function App() {
                 scored={repairFinal.candidates}
                 showExplainability={!hidePerCardExplain}
                 city={repairFinal.city || selected?.city}
+                source={mode === 'recorded' ? 'recorded' : 'live_qloo'}
               />
             </div>
           ) : null}
