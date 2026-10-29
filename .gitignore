@@ -23,9 +23,9 @@ build/
 .vscode/
 
 # Runtime / demo artifacts
+# Qloo response fixtures stay local / image-only — not in the public git tree.
 recorded/*
 !recorded/.gitkeep
-!recorded/*.json
 probes/probe_report.json
 *.log
 .DS_Store

@@ -11,8 +11,12 @@ from app.config import ROOT
 REC_DIR = ROOT / "recorded"
 
 
+class FixtureMissing(FileNotFoundError):
+    """Raised when a recorded fixture path is absent from this checkout."""
+
+
 def load_fixture(relative_path: str) -> dict[str, Any]:
     path = ROOT / relative_path
     if not path.is_file():
-        raise FileNotFoundError(f"Recorded fixture missing: {relative_path}")
+        raise FixtureMissing(f"Recorded fixture missing: {relative_path}")
     return json.loads(path.read_text(encoding="utf-8"))
