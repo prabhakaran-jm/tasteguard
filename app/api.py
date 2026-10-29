@@ -12,6 +12,7 @@ from app.config import get_settings
 from app.gemini_agent import GeminiConcierge
 from app.models import CandidateInput, EvaluateRequest, EvaluationResult
 from app.presets import get_preset, inject_candidates, list_presets, preset_center
+from app.mcp_seeds import validate_mcp_seed_queries
 from app.public_pins import reject_http_client_pins
 from app.qloo_client import QlooError
 from app.rate_limit import enforce_live_rate_limit
@@ -81,6 +82,8 @@ class EvaluateBody(BaseModel):
     preset_id: str = Field(..., min_length=1, max_length=80)
     candidates: list[CandidateInput] = Field(..., min_length=1, max_length=MAX_CANDIDATES)
     force_live: bool = False
+    # Optional judge/custom seeds; empty → preset seeds. Same shape as MCP.
+    seed_queries: list[dict[str, str]] | None = Field(default=None, max_length=6)
 
     @field_validator("candidates")
     @classmethod
@@ -104,6 +107,15 @@ class EvaluateBody(BaseModel):
         if not cleaned:
             raise ValueError("At least one candidate with a name is required")
         return cleaned
+
+    @field_validator("seed_queries")
+    @classmethod
+    def validate_seeds(cls, v: list[dict[str, str]] | None) -> list[dict[str, str]] | None:
+        if v is None:
+            return None
+        if not v:
+            return None
+        return validate_mcp_seed_queries(v)
 
 
 class EvaluateResponse(ModeMixin):
@@ -137,11 +149,13 @@ def _build_request(
     candidates: list[CandidateInput],
     *,
     expected_count: int | None = None,
+    seed_queries: list[dict[str, str]] | None = None,
 ) -> EvaluateRequest:
+    seeds = seed_queries if seed_queries else list(preset.get("seed_queries") or [])
     return EvaluateRequest(
         city=str(preset["city"]),
         city_center=preset_center(preset),
-        seed_queries=list(preset.get("seed_queries") or []),
+        seed_queries=seeds,
         candidates=candidates,
         fetch_alternatives=True,
         expected_count=expected_count,
@@ -284,19 +298,25 @@ async def evaluate(request: Request, body: EvaluateBody) -> EvaluateResponse:
     settings = get_settings()
     if not settings.qloo_api_key:
         raise HTTPException(status_code=503, detail="QLOO_API_KEY not configured")
+    seeds = body.seed_queries
     eval_request = _build_request(
         preset,
         body.candidates,
         expected_count=len(body.candidates),
+        seed_queries=seeds,
     )
     try:
         result = await TasteGuardService(settings).evaluate(eval_request)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=502, detail=f"Evaluate failed: {exc}") from exc
+    persona = str(preset["persona"])
+    if seeds:
+        labels = ", ".join(s["query"] for s in seeds[:4])
+        persona = f"Custom taste seeds: {labels}"
     eid = eval_cache.put(
         result,
         eval_request,
-        persona_description=str(preset["persona"]),
+        persona_description=persona,
     )
     return EvaluateResponse(mode="live", evaluation_id=eid, result=result)
 

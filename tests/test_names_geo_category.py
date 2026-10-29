@@ -209,6 +209,41 @@ def test_taberna_allowed_as_dinner():
     )
 
 
+def test_taberna_rua_not_blocked_by_street_word():
+    assert is_restaurant_like(
+        {
+            "name": "Taberna da Rua das Flores",
+            "properties": {"primary_genre": "Portuguese Restaurant"},
+        }
+    )
+
+
+def test_steak_house_two_words_counts_as_dinner():
+    assert is_restaurant_like(
+        {
+            "name": "Peter Luger Steak House",
+            "properties": {"primary_genre": "Steakhouse"},
+        }
+    )
+
+
+def test_the_mill_coffee_rejected():
+    from app.category import is_dinner_pool_eligible
+
+    assert not is_restaurant_like(
+        {
+            "name": "the mill",
+            "properties": {"primary_genre": "Cafe"},
+        }
+    )
+    assert not is_dinner_pool_eligible(
+        {
+            "name": "the mill",
+            "properties": {"primary_genre": "Cafe Restaurant"},
+        }
+    )
+
+
 def test_join_messages_no_double_punctuation():
     from app.service import _join_messages
 
@@ -278,7 +313,8 @@ def test_stress_inject_keepers_and_lisbon_neighbourhoods():
     names = [c.name for c in cands]
     assert "A Cevicheria" in names
     assert "Cervejaria Ramiro" in names
-    assert "Prado" not in names
+    # In-city taste miss (not geo) — kept so live stress shows Qloo affinity FAIL.
+    assert "Prado" in names
     paris = next(c for c in cands if "Comptoir" in c.name)
     assert paris.neighbourhood == "Chiado"
     assert "Paris" not in (paris.neighbourhood or "")

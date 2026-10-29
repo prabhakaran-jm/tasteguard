@@ -1,8 +1,13 @@
 # TasteGuard
 
-**A cultural firewall for place agents** — verify Gemini restaurant picks against
-[Qloo](https://qloo.com)’s taste graph, then repair weak lists from a closed
+**A cultural firewall for place agents** — Qloo knows a Radiohead fan’s taste in
+restaurants, not just music. Verify Gemini picks against the
+[Qloo](https://qloo.com) taste graph, then repair weak lists from a closed
 in-city dinner pool.
+
+**Who it’s for:** travel / hospitality concierge agents — one wrong-city or
+off-taste booking becomes a bad review. TasteGuard is the check before the
+agent answers.
 
 | | |
 |---|---|
@@ -16,14 +21,17 @@ in-city dinner pool.
 ## Try it in 2 minutes (judges)
 
 1. Open the [live demo](https://tasteguard-342276031814.us-central1.run.app).
-2. Leave the default **Stress test · Lisbon (recorded) — shows the catch**.
-3. Press **Play recorded run** (~1s) — FAIL on the injected list (wrong-city ×2,
-   unresolved ×1), then closed-set repair to **PASS**.
-4. Optionally switch to **Stress test · Lisbon (live Qloo)** and press
-   **Run live** (~15–30s). Live results may vary slightly from the recorded
-   replay as Qloo data changes; the inject list is the same controlled stress
-   set (not Gemini mistakes).
-5. NYC live is optional and slower (~30–45s).
+2. **Taste (recommended):** select **Radiohead · Lisbon dinner (live)** →
+   **Run live** (~15–30s). Gemini proposes; Qloo Insights scores taste vs Lisbon
+   anchors (cross-domain seeds); TasteGuard rewrites weak fits and repairs.
+3. **Catch (reproducible):** switch to **Stress test · Lisbon (recorded)** →
+   **Play recorded run** (~1s) — wrong-city ×2, unresolved ×1, plus Prado
+   (in-city but weak taste fit); then closed-set repair to **PASS**.
+4. **Your list:** pick **Lisbon** or **New York**, paste place names
+   (`Name | neighbourhood`, one per line), optionally add up to 3 taste
+   seeds, then **Evaluate pasted list** — always live evaluate → repair
+   (blank seeds → Radiohead profile for that city).
+5. Optional: **Kendrick · Lisbon** (contrasting taste) or NYC live (~30–45s).
 
 ## What makes it Qloo-powered
 
@@ -31,7 +39,7 @@ in-city dinner pool.
 |---|---|---|
 | `/search` | Candidate names (+ city bias) | Places resolve (or fail) with distance / mismatch |
 | `/v2/insights` + `filter.results.entities` | Verified entity IDs vs city restaurant anchors + taste seeds | Per-item affinity / percentile vs local references |
-| Insights `feature.explainability` | Same Insights call | “Strongest contributing interest: …” on cards |
+| Insights `feature.explainability` | Same Insights call | “Taste drivers: …” (top seeds) on cards |
 
 Search resolves; Insights scores taste; TasteGuard policy decides ALLOW /
 REWRITE / UNKNOWN; Gemini may only pick closed-set pool IDs on repair.
@@ -46,7 +54,7 @@ REWRITE / UNKNOWN; Gemini may only pick closed-set pool IDs on repair.
 Named venues and affinity scores stay in the live UI / Devpost screenshots —
 not republished here.
 
-**Automated tests:** `54` passed (`pytest`) as of this pass.
+**Automated tests:** `63` passed (`pytest`) as of this pass.
 
 ## Limitations
 
@@ -152,11 +160,18 @@ terraform output service_url
 Use a **unique image tag** (not `:latest`) so Terraform creates a new revision.
 Secrets live in `infra/secrets.auto.tfvars` (gitignored) → Secret Manager.
 
-Rollback tag: `pre-polish-2026-10-29` (Cloud Run was `tasteguard-00007-9sq`
-before the presentation polish). Rollback traffic if needed:
+**Rollback (freeze revision before this unfreeze):** `tasteguard-00014-qlk`
 
 ```powershell
-gcloud run services update-traffic tasteguard --region=us-central1 --to-revisions=tasteguard-00007-9sq=100
+gcloud run services update-traffic tasteguard --region=us-central1 --to-revisions=tasteguard-00014-qlk=100
+```
+
+Re-record the private Lisbon stress fixture after inject/category changes:
+
+```powershell
+$env:PYTHONPATH='.'
+python scripts/rerecord_stress_lisbon.py
+# then rebuild image so Cloud Run ships the new recorded/*.json
 ```
 
 ## API (staged)

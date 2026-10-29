@@ -15,15 +15,26 @@ _RADIOHEAD_ARTSY_SEEDS = [
     {"query": "Aesop", "types": "urn:entity:brand"},
 ]
 
-# Stress inject: two keepers that clear the 40th-percentile taste policy in live
-# Qloo runs, plus wrong-city + invented catches. Neighbourhoods claim Lisbon so
-# the Paris/Cascais distance reveal is a real catch.
+# Contrasting persona — same city, different taste graph neighbourhood.
+_STREET_CULTURE_SEEDS = [
+    {"query": "Kendrick Lamar", "types": "urn:entity:artist"},
+    {"query": "Uncut Gems", "types": "urn:entity:movie"},
+    {"query": "Kitchen Confidential", "types": "urn:entity:book"},
+    {"query": "Nike", "types": "urn:entity:brand"},
+]
+
+# Stress inject: keepers that clear the 40th-percentile taste policy in live
+# Qloo runs, plus wrong-city + invented + a place that often fails *taste*
+# (tourist chain) while still resolving in Lisbon.
 _STRESS_INJECT = [
     {"name": "A Cevicheria", "neighbourhood": "Príncipe Real"},
     {"name": "Cervejaria Ramiro", "neighbourhood": "Intendente"},
     {"name": "Le Comptoir du Relais", "neighbourhood": "Chiado"},
     {"name": "Fortaleza do Guincho", "neighbourhood": "Bairro Alto"},
     {"name": "Casa Azul da Lua Fictícia", "neighbourhood": "Alfama"},
+    # Live probe 2026-10-29: resolves in Lisbon (~1.4 km) but ~24th-percentile
+    # vs Radiohead/artsy anchors — a Qloo taste miss, not a geo miss.
+    {"name": "Prado", "neighbourhood": "Avenida da Liberdade"},
 ]
 
 
@@ -39,12 +50,12 @@ PRESETS: dict[str, dict[str, Any]] = {
             "There Will Be Blood, Norwegian Wood, Aesop."
         ),
         "seed_queries": list(_RADIOHEAD_ARTSY_SEEDS),
-        "n": 5,
+        "n": 6,
         "recorded_path": "recorded/stress-lisbon.json",
         "blurb": (
-            "Recorded replay of a live Qloo stress run: two in-city keepers, a "
-            "Paris venue claiming Chiado, a Cascais venue claiming Bairro Alto, "
-            "and an invented name — then closed-set repair to five ALLOW places."
+            "Recorded replay: two keepers, Paris (~1,452 km), Cascais (~29 km), "
+            "an invented name, and Prado (in-city but weak taste fit) — then "
+            "closed-set repair to validated dinner places."
         ),
     },
     "stress-lisbon-live": {
@@ -58,11 +69,47 @@ PRESETS: dict[str, dict[str, Any]] = {
             "There Will Be Blood, Norwegian Wood, Aesop."
         ),
         "seed_queries": list(_RADIOHEAD_ARTSY_SEEDS),
-        "n": 5,
+        "n": 6,
         "inject_candidates": list(_STRESS_INJECT),
         "blurb": (
-            "Injected test list (not Gemini). Deliberately includes wrong-city "
-            "and invented names, then runs live Qloo evaluate + repair."
+            "Injected test list (not Gemini). Wrong-city, invented, and Prado "
+            "(resolves in Lisbon but fails the 40th-percentile taste bar)."
+        ),
+    },
+    "radiohead-lisbon": {
+        "id": "radiohead-lisbon",
+        "label": "Radiohead · Lisbon dinner (live) — taste demo",
+        "kind": "live",
+        "city": "Lisbon",
+        "city_center": {"lat": 38.7223, "lon": -9.1393},
+        "persona": (
+            "Indie / artsy palate; prefers thoughtful local dining, "
+            "not tourist traps. Seeds: Radiohead, There Will Be Blood, "
+            "Norwegian Wood, Aesop."
+        ),
+        "seed_queries": list(_RADIOHEAD_ARTSY_SEEDS),
+        "n": 5,
+        "blurb": (
+            "Recommended live demo: Gemini proposes for a Radiohead-leaning "
+            "palate; TasteGuard scores taste vs Lisbon anchors (Qloo cross-domain "
+            "graph) and repairs weak fits from a closed pool."
+        ),
+    },
+    "kendrick-lisbon": {
+        "id": "kendrick-lisbon",
+        "label": "Kendrick · Lisbon dinner (live) — contrasting taste",
+        "kind": "live",
+        "city": "Lisbon",
+        "city_center": {"lat": 38.7223, "lon": -9.1393},
+        "persona": (
+            "Street-smart, high-energy palate; bold flavours and nightlife-adjacent "
+            "dining. Seeds: Kendrick Lamar, Uncut Gems, Kitchen Confidential, Nike."
+        ),
+        "seed_queries": list(_STREET_CULTURE_SEEDS),
+        "n": 5,
+        "blurb": (
+            "Same city, different taste graph. Compare with Radiohead Lisbon to "
+            "see Qloo change which dinners clear the bar."
         ),
     },
     "radiohead-nyc": {
@@ -80,25 +127,7 @@ PRESETS: dict[str, dict[str, Any]] = {
         "n": 5,
         "blurb": (
             "Optional live Gemini → TasteGuard path for New York. Often ~30–45s — "
-            "watch the step labels; prefer the recorded stress demo for a fast catch."
-        ),
-    },
-    "radiohead-lisbon": {
-        "id": "radiohead-lisbon",
-        "label": "Radiohead · Lisbon dinner (live)",
-        "kind": "live",
-        "city": "Lisbon",
-        "city_center": {"lat": 38.7223, "lon": -9.1393},
-        "persona": (
-            "Indie / artsy palate; prefers thoughtful local dining, "
-            "not tourist traps. Seeds: Radiohead, There Will Be Blood, "
-            "Norwegian Wood, Aesop."
-        ),
-        "seed_queries": list(_RADIOHEAD_ARTSY_SEEDS),
-        "n": 5,
-        "blurb": (
-            "Honest live Gemini propose → TasteGuard. Use a stress preset to "
-            "guarantee the wrong-city catch."
+            "prefer Radiohead Lisbon or the recorded stress demo for a fast pitch."
         ),
     },
 }
@@ -113,6 +142,7 @@ def list_presets() -> list[dict[str, Any]]:
             "city": p["city"],
             "persona": p["persona"],
             "blurb": p.get("blurb") or "",
+            # Keep recorded as one-click FAIL→PASS; Hero copy pushes Radiohead live.
             "default": p["id"] == "stress-lisbon-recorded",
         }
         for p in PRESETS.values()

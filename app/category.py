@@ -15,6 +15,9 @@ DINNER_NAME_OR_GENRE = {
     "cervejaria",
     "gastropub",
     "steakhouse",
+    "steak house",
+    "deli",
+    "delicatessen",
     "pizzeria",
     "wine bar",
     "tapas",
@@ -27,7 +30,8 @@ DINNER_NAME_OR_GENRE = {
     "osteria",
 }
 
-HARD_REJECT_NAME = {
+# Always reject — even when the name also has a dinner cue.
+HARD_REJECT_ALWAYS = {
     "museum",
     "museu",
     "miradouro",
@@ -46,18 +50,8 @@ HARD_REJECT_NAME = {
     "fundação",
     "fundacao",
     "monument",
-    "park",
-    "jardim",
-    " garden",
-    "street",
-    " avenue",
-    "rua ",
-    "travessa",
     "hotel",
     "hostel",
-    "palace",
-    "palacio",
-    "palácio",
     "bookstore",
     "livraria",
     "theatre",
@@ -72,6 +66,23 @@ HARD_REJECT_NAME = {
     "yacht",
     "clube",
 }
+
+# Street/park/palace words — skip when the name already looks like dinner
+# (e.g. Taberna da Rua das Flores).
+HARD_REJECT_LOCATION = {
+    "park",
+    "jardim",
+    " garden",
+    "street",
+    " avenue",
+    "rua ",
+    "travessa",
+    "palace",
+    "palacio",
+    "palácio",
+}
+
+HARD_REJECT_NAME = HARD_REJECT_ALWAYS | HARD_REJECT_LOCATION
 
 # Bar/cafe-only genres without a dinner cue are not dinner restaurants.
 BAR_OR_CAFE_ONLY = {
@@ -118,11 +129,12 @@ def _has_dinner_signal(name: str, genre: str) -> bool:
     return any(h in blob for h in DINNER_NAME_OR_GENRE)
 
 
-# Historic cafés that Qloo sometimes tags with a noisy dining genre.
+# Historic cafés / specialty coffee that Qloo sometimes tags with a noisy dining genre.
 KNOWN_NON_DINNER_NAMES = {
     "nicola",
     "café nicola",
     "cafe nicola",
+    "the mill",
 }
 
 # Stronger cues required for the closed-set *repair pool* (not mere "kitchen"/"grill").
@@ -138,6 +150,9 @@ POOL_DINNER_CUES = {
     "cervejaria",
     "gastropub",
     "steakhouse",
+    "steak house",
+    "deli",
+    "delicatessen",
     "pizzeria",
     "wine bar",
     "tapas",
@@ -186,7 +201,11 @@ def is_restaurant_like(entity: dict[str, Any]) -> bool:
 
     if name in KNOWN_NON_DINNER_NAMES or name.startswith("nicola "):
         return False
-    if any(token in name for token in HARD_REJECT_NAME):
+    if any(token in name for token in HARD_REJECT_ALWAYS):
+        return False
+    dinnerish = _has_dinner_signal(name, genre)
+    # Location words (rua/park/palace) only block when there is no dinner cue.
+    if not dinnerish and any(token in name for token in HARD_REJECT_LOCATION):
         return False
     if any(token in genre for token in ("association", "club", "naval", "museum")):
         return False
@@ -197,7 +216,7 @@ def is_restaurant_like(entity: dict[str, Any]) -> bool:
         return False
 
     # Positive dinner evidence required — not merely "not a museum".
-    if not _has_dinner_signal(name, genre):
+    if not dinnerish:
         return False
 
     lodging = any(h in name for h in LODGING_HINTS) or any(

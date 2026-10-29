@@ -19,6 +19,7 @@ build/
 
 # Agent / IDE (never commit)
 .cursor/
+.claude/
 .idea/
 .vscode/
 

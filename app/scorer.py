@@ -37,9 +37,14 @@ def summarize_explainability(
     if not contrib:
         return "Explanation unavailable"
     labels = id_to_label or {}
-    top = sorted(contrib.items(), key=lambda kv: kv[1], reverse=True)[0]
-    label = labels.get(top[0], top[0])
-    return f"Strongest contributing interest: {label} ({top[1]:.2f})"
+    ranked = sorted(contrib.items(), key=lambda kv: kv[1], reverse=True)[:3]
+    parts: list[str] = []
+    for eid, score in ranked:
+        label = labels.get(eid, eid)
+        parts.append(f"{label} ({score:.2f})")
+    if len(parts) == 1:
+        return f"Taste drivers: {parts[0]}"
+    return "Taste drivers: " + " · ".join(parts)
 
 
 class AnchorScorer:
