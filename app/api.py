@@ -10,6 +10,7 @@ from app.config import get_settings
 from app.gemini_agent import GeminiConcierge
 from app.models import CandidateInput, EvaluateRequest, EvaluationResult
 from app.presets import get_preset, inject_candidates, list_presets, preset_center
+from app.public_pins import reject_http_client_pins
 from app.rate_limit import enforce_live_rate_limit
 from app.recorded import load_fixture
 from app.service import TasteGuardService
@@ -82,6 +83,7 @@ class EvaluateResponse(ModeMixin):
 
 
 class RepairBody(BaseModel):
+    # Server rebuilds candidates from eval_cache — no client pin surface here.
     evaluation_id: str = Field(..., min_length=1, max_length=80)
     max_rounds: int = Field(default=MAX_ROUNDS, ge=0, le=MAX_ROUNDS)
 
@@ -215,6 +217,9 @@ async def evaluate(request: Request, body: EvaluateBody) -> EvaluateResponse:
     preset = get_preset(body.preset_id)
     if not preset:
         raise HTTPException(status_code=404, detail="Unknown preset_id")
+
+    # Null pin fields from /api/propose are OK; non-null pins are repair-only.
+    reject_http_client_pins(body.candidates)
 
     if _use_recorded(preset, body.force_live):
         fixture = load_fixture(str(preset["recorded_path"]))

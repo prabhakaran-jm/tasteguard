@@ -174,8 +174,19 @@ select {
   }
 }
 
-.outcome-summary {
+.stage-heading {
+  margin: 0 0 0.65rem;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.original-list-block {
   margin: 0 0 1.25rem;
+}
+
+.outcome-summary {
+  margin: 1.25rem 0 0;
   padding: 1rem 1.1rem;
   border: 1px solid rgba(196, 163, 90, 0.35);
   background: rgba(20, 32, 24, 0.65);

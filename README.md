@@ -6,7 +6,7 @@ in-city dinner pool.
 
 | | |
 |---|---|
-| **Live demo** | https://tasteguard-jew5ozur6q-uc.a.run.app |
+| **Live demo** | https://tasteguard-342276031814.us-central1.run.app |
 | **Source** | https://github.com/prabhakaran-jm/tasteguard |
 | **License** | MIT |
 
@@ -15,7 +15,7 @@ in-city dinner pool.
 
 ## Try it in 2 minutes (judges)
 
-1. Open the [live demo](https://tasteguard-jew5ozur6q-uc.a.run.app).
+1. Open the [live demo](https://tasteguard-342276031814.us-central1.run.app).
 2. Leave the default **Stress test · Lisbon (recorded) — shows the catch**.
 3. Press **Play recorded run** (~1s) — FAIL on the injected list (wrong-city ×2,
    unresolved ×1), then closed-set repair to **PASS**.
@@ -46,7 +46,7 @@ REWRITE / UNKNOWN; Gemini may only pick closed-set pool IDs on repair.
 Named venues and affinity scores stay in the live UI / Devpost screenshots —
 not republished here.
 
-**Automated tests:** `37` passed (`pytest`) as of this pass.
+**Automated tests:** `51` passed (`pytest`) as of this pass.
 
 ## Limitations
 
@@ -60,8 +60,9 @@ not republished here.
   not a full travel agent.
 - Live HTTP propose / evaluate / repair are rate-limited per client IP (generous;
   recorded path unlimited). MCP evaluate/repair share one bucket (`mcp:all`) and
-  the same daily cap. In-process counters; with 2 Cloud Run instances the
-  effective ceiling is roughly 2×.
+  the same daily cap. Counters are in-process; Cloud Run is pinned to
+  **max_instances=1** so evaluate→repair shares one `eval_cache` (multi-instance
+  could 404 on repair) and the per-IP / MCP caps stay exact.
 
 ## Privacy
 
@@ -171,7 +172,7 @@ Thin FastMCP (official `mcp.server.fastmcp`) mounted at **`/mcp`**.
 
 | | |
 |---|---|
-| **SSE URL** | `https://tasteguard-jew5ozur6q-uc.a.run.app/mcp/sse` |
+| **SSE URL** | `https://tasteguard-342276031814.us-central1.run.app/mcp/sse` |
 | **Tools** | `tasteguard_list_presets`, `tasteguard_evaluate`, `tasteguard_repair` |
 
 Example Cursor / Claude Desktop remote server entry:
@@ -180,7 +181,7 @@ Example Cursor / Claude Desktop remote server entry:
 {
   "mcpServers": {
     "tasteguard": {
-      "url": "https://tasteguard-jew5ozur6q-uc.a.run.app/mcp/sse"
+      "url": "https://tasteguard-342276031814.us-central1.run.app/mcp/sse"
     }
   }
 }

@@ -41,7 +41,8 @@ variable "min_instances" {
 
 variable "max_instances" {
   type        = number
-  default     = 3
+  # Single instance: eval_cache is process-local; multi-instance can 404 on /repair.
+  default     = 1
 }
 
 variable "gemini_model" {

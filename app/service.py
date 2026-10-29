@@ -33,6 +33,23 @@ def _join_messages(parts: list[str]) -> str | None:
     return ". ".join(cleaned) + "."
 
 
+def _banner_reason(candidate: ScoredCandidate) -> str:
+    """Pick the most informative supported reason for the FAIL/PASS banner."""
+    reasons = list(candidate.reasons or [])
+    if not reasons:
+        return "see item evidence"
+    for reason in reasons:
+        low = reason.lower()
+        if "km away" in low or "claimed" in low or "wrong" in low:
+            return reason
+    if candidate.evidence == EvidenceState.MISMATCH and candidate.distance_km is not None:
+        dist = candidate.distance_km
+        dist_txt = f"{dist:.0f}" if dist >= 100 else f"{dist:.1f}"
+        place = candidate.matched_name or "matched place"
+        return f"wrong city / far match ({place}, {dist_txt} km)"
+    return reasons[0]
+
+
 class TasteGuardService:
     def __init__(self, settings: Settings | None = None):
         self.settings = settings or get_settings()
@@ -269,9 +286,9 @@ class TasteGuardService:
                 messages.append(
                     "TasteGuard only passes what it can verify; insufficient anchors → no PASS"
                 )
-            # Concrete per-item reasons for the FAIL/PASS banner.
+            # Prefer wrong-city / distance evidence over generic fallbacks.
             problem_lines = [
-                f"{c.input.name}: {c.reasons[-1]}"
+                f"{c.input.name}: {_banner_reason(c)}"
                 for c in scored_candidates
                 if c.item_verdict != ItemVerdict.ALLOW and c.reasons
             ]
@@ -362,7 +379,8 @@ class TasteGuardService:
                 if c.item_verdict == ItemVerdict.ALLOW:
                     keep.append(
                         CandidateInput(
-                            name=(c.matched_name or c.input.name)[:120],
+                            # Keep the submitted name; matched_name stays on the scored row.
+                            name=c.input.name[:120],
                             neighbourhood=c.input.neighbourhood,
                             address=c.input.address,
                             notes="Kept after TasteGuard allow",

@@ -12,8 +12,11 @@ from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 
 from app.geo import LatLng
-from app.models import CandidateInput, EvaluateRequest, ItemVerdict
+from app.mcp_coords import resolve_mcp_coords
+from app.mcp_seeds import validate_mcp_seed_queries
+from app.models import EvaluateRequest, ItemVerdict
 from app.presets import list_presets
+from app.public_pins import strip_mcp_client_pins
 from app.rate_limit import enforce_mcp_rate_limit
 from app.service import TasteGuardService
 
@@ -54,27 +57,11 @@ mcp = FastMCP(
 )
 
 
-def _candidate_inputs(raw: list[dict[str, Any]]) -> list[CandidateInput]:
-    out: list[CandidateInput] = []
-    for item in raw[:8]:
-        name = str(item.get("name") or "").strip()
-        if not name:
-            continue
-        out.append(
-            CandidateInput(
-                name=name[:120],
-                neighbourhood=(str(item["neighbourhood"])[:80] if item.get("neighbourhood") else None),
-                address=(str(item["address"])[:160] if item.get("address") else None),
-                notes=(str(item["notes"])[:200] if item.get("notes") else None),
-                entity_id=(str(item["entity_id"])[:80] if item.get("entity_id") else None),
-            )
-        )
-    if not out:
-        raise ValueError("At least one candidate with a name is required")
-    return out
-
-
-def _summarize_result(result: Any) -> dict[str, Any]:
+def _summarize_result(
+    result: Any,
+    *,
+    client_pins_ignored: list[str] | None = None,
+) -> dict[str, Any]:
     cands = []
     for c in result.candidates:
         cands.append(
@@ -103,6 +90,16 @@ def _summarize_result(result: Any) -> dict[str, Any]:
         }
         for a in (result.alternatives or [])[:12]
     ]
+    notes = {
+        k: result.notes[k]
+        for k in ("repair_round", "kept_allows", "replaced", "anchor_city")
+        if k in (result.notes or {})
+    }
+    if client_pins_ignored:
+        notes["client_pins_ignored"] = list(client_pins_ignored)
+        notes["client_entity_id_note"] = (
+            "client entity_id ignored; resolved by name"
+        )
     return {
         "evaluation_status": result.evaluation_status.value,
         "policy_verdict": (
@@ -116,30 +113,30 @@ def _summarize_result(result: Any) -> dict[str, Any]:
         ),
         "candidates": cands,
         "alternatives": alts,
-        "notes": {
-            k: result.notes[k]
-            for k in ("repair_round", "kept_allows", "replaced", "anchor_city")
-            if k in (result.notes or {})
-        },
+        "notes": notes,
     }
 
 
 def _build_request(
     *,
     city: str,
-    lat: float,
-    lon: float,
+    lat: float | None,
+    lon: float | None,
     candidates: list[dict[str, Any]],
-    seed_queries: list[dict[str, str]] | None,
-) -> EvaluateRequest:
-    return EvaluateRequest(
+    seed_queries: list[dict[str, Any]] | None,
+) -> tuple[EvaluateRequest, list[str]]:
+    lat_v, lon_v = resolve_mcp_coords(city, lat, lon)
+    seeds = validate_mcp_seed_queries(seed_queries)
+    cand_inputs, ignored = strip_mcp_client_pins(candidates)
+    request = EvaluateRequest(
         city=city.strip(),
-        city_center=LatLng(lat=float(lat), lon=float(lon)),
-        seed_queries=list(seed_queries or []),
-        candidates=_candidate_inputs(candidates),
+        city_center=LatLng(lat=lat_v, lon=lon_v),
+        seed_queries=seeds,
+        candidates=cand_inputs,
         fetch_alternatives=True,
         expected_count=None,
     )
+    return request, ignored
 
 
 @mcp.tool()
@@ -151,23 +148,26 @@ async def tasteguard_list_presets() -> dict[str, Any]:
 @mcp.tool()
 async def tasteguard_evaluate(
     city: str,
-    lat: float,
-    lon: float,
     candidates: list[dict[str, Any]],
+    lat: float | None = None,
+    lon: float | None = None,
     seed_queries: list[dict[str, str]] | None = None,
 ) -> dict[str, Any]:
     """Evaluate a restaurant list with Qloo resolve + taste affinity.
 
-    Each candidate is a dict with at least ``name``; optional ``neighbourhood``,
-    ``address``, ``notes``, ``entity_id`` (pin skips name search).
+    Each candidate needs ``name``; optional ``neighbourhood``, ``address``,
+    ``notes``. Client ``entity_id`` / pinned fields are ignored (resolved by name).
 
-    ``seed_queries`` items look like ``{\"query\": \"Radiohead\", \"types\": \"urn:entity:artist\"}``.
+    ``lat``/``lon`` optional for Lisbon or New York; required for other cities.
+
+    ``seed_queries`` items must look like
+    ``{\"query\": \"Radiohead\", \"types\": \"urn:entity:artist\"}``.
 
     Returns policy PASS/FAIL, per-item verdicts, and a closed dinner alternative
     pool when FAIL.
     """
     enforce_mcp_rate_limit()
-    request = _build_request(
+    request, ignored = _build_request(
         city=city,
         lat=lat,
         lon=lon,
@@ -176,15 +176,15 @@ async def tasteguard_evaluate(
     )
     request.expected_count = len(request.candidates)
     result = await TasteGuardService().evaluate(request)
-    return _summarize_result(result)
+    return _summarize_result(result, client_pins_ignored=ignored)
 
 
 @mcp.tool()
 async def tasteguard_repair(
     city: str,
-    lat: float,
-    lon: float,
     candidates: list[dict[str, Any]],
+    lat: float | None = None,
+    lon: float | None = None,
     seed_queries: list[dict[str, str]] | None = None,
     persona_description: str = "",
     max_rounds: int = 3,
@@ -193,9 +193,10 @@ async def tasteguard_repair(
 
     Keeps ALLOW items; replaces rewrite/unknown slots from the Qloo dinner pool.
     Gemini may only pick pool entity IDs; invalid picks fall back to top affinity.
+    Client entity pins are stripped (same as evaluate) so agents can chain calls.
     """
     enforce_mcp_rate_limit()
-    request = _build_request(
+    request, ignored = _build_request(
         city=city,
         lat=lat,
         lon=lon,
@@ -210,7 +211,7 @@ async def tasteguard_repair(
         or f"Dinner recommendations in {city}",
         max_rounds=rounds,
     )
-    summary = _summarize_result(final)
+    summary = _summarize_result(final, client_pins_ignored=ignored)
     summary["history_len"] = len(history)
     summary["rounds_attempted"] = max(0, len(history) - 1)
     return summary
