@@ -144,6 +144,7 @@ export default function App() {
     setStageBusy('propose')
     scrollToDemo()
     const started = performance.now()
+    let repairAttempted = false
 
     try {
       const propose = await api<{
@@ -181,6 +182,7 @@ export default function App() {
         evaluated.result.evaluation_status === 'completed' &&
         evaluated.result.policy_verdict === 'FAIL'
       ) {
+        repairAttempted = true
         setStageBusy('repair')
         const repaired = await api<{
           mode: string
@@ -197,7 +199,11 @@ export default function App() {
       setRunFinishedAt(new Date().toISOString())
       setElapsedSec(Math.round((performance.now() - started) / 100) / 10)
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      if (repairAttempted) {
+        setError('Repair temporarily unavailable. Run again.')
+      } else {
+        setError(err instanceof Error ? err.message : String(err))
+      }
     } finally {
       setStageBusy(null)
       setRunning(false)
@@ -360,6 +366,7 @@ export default function App() {
           ) : null}
 
           {evalResult &&
+          !error &&
           stageBusy !== 'repair' &&
           (repairFinal != null ||
             evalResult.policy_verdict !== 'FAIL' ||

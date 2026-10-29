@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import logging
 from typing import Any, Literal
 
+import httpx
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator
 
@@ -11,11 +13,39 @@ from app.gemini_agent import GeminiConcierge
 from app.models import CandidateInput, EvaluateRequest, EvaluationResult
 from app.presets import get_preset, inject_candidates, list_presets, preset_center
 from app.public_pins import reject_http_client_pins
+from app.qloo_client import QlooError
 from app.rate_limit import enforce_live_rate_limit
 from app.recorded import load_fixture
 from app.service import TasteGuardService
 
 router = APIRouter(prefix="/api")
+logger = logging.getLogger(__name__)
+
+REPAIR_UNAVAILABLE = "Repair temporarily unavailable. Run again."
+
+
+def _is_retryable_repair_error(exc: BaseException) -> bool:
+    """Retry only transient upstream failures — not programming / policy errors."""
+    if isinstance(exc, QlooError):
+        code = exc.status_code
+        return code is None or code == 429 or code >= 500
+    if isinstance(exc, (httpx.TimeoutException, httpx.TransportError, TimeoutError)):
+        return True
+    text = str(exc).lower()
+    needles = (
+        "timeout",
+        "timed out",
+        "429",
+        "rate limit",
+        "temporarily",
+        "503",
+        "502",
+        "504",
+        "unavailable",
+        "connection reset",
+        "connecterror",
+    )
+    return any(n in text for n in needles)
 
 MAX_CANDIDATES = 8
 MAX_NAME_LEN = 120
@@ -293,13 +323,27 @@ async def repair(request: Request, body: RepairBody) -> RepairResponse:
     settings = get_settings()
     if not settings.qloo_api_key:
         raise HTTPException(status_code=503, detail="QLOO_API_KEY not configured")
-    try:
-        final, history = await TasteGuardService(settings).repair_until_pass(
-            cached.request,
-            persona_description=cached.persona_description,
-            max_rounds=rounds,
-            initial=cached.result,
-        )
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=f"Repair failed: {exc}") from exc
-    return RepairResponse(mode="live", final=final, history=history)
+
+    # Each attempt starts from the cached initial evaluation — no shared mutation.
+    last_exc: BaseException | None = None
+    for attempt in range(2):
+        try:
+            final, history = await TasteGuardService(settings).repair_until_pass(
+                cached.request,
+                persona_description=cached.persona_description,
+                max_rounds=rounds,
+                initial=cached.result,
+            )
+            return RepairResponse(mode="live", final=final, history=history)
+        except Exception as exc:  # noqa: BLE001
+            last_exc = exc
+            logger.exception(
+                "repair_failed evaluation_id=%s attempt=%s",
+                body.evaluation_id,
+                attempt + 1,
+            )
+            if attempt == 0 and _is_retryable_repair_error(exc):
+                continue
+            break
+
+    raise HTTPException(status_code=502, detail=REPAIR_UNAVAILABLE) from last_exc
