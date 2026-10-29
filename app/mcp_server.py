@@ -14,6 +14,7 @@ from mcp.server.transport_security import TransportSecuritySettings
 from app.geo import LatLng
 from app.models import CandidateInput, EvaluateRequest, ItemVerdict
 from app.presets import list_presets
+from app.rate_limit import enforce_mcp_rate_limit
 from app.service import TasteGuardService
 
 
@@ -165,6 +166,7 @@ async def tasteguard_evaluate(
     Returns policy PASS/FAIL, per-item verdicts, and a closed dinner alternative
     pool when FAIL.
     """
+    enforce_mcp_rate_limit()
     request = _build_request(
         city=city,
         lat=lat,
@@ -192,6 +194,7 @@ async def tasteguard_repair(
     Keeps ALLOW items; replaces rewrite/unknown slots from the Qloo dinner pool.
     Gemini may only pick pool entity IDs; invalid picks fall back to top affinity.
     """
+    enforce_mcp_rate_limit()
     request = _build_request(
         city=city,
         lat=lat,

@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import patch
 
+import pytest
 from fastapi.testclient import TestClient
 
-from app.config import Settings, get_settings
+from app.config import ROOT, Settings, get_settings
 from app.main import app
 from app.rate_limit import reset_for_tests
 
@@ -21,6 +23,10 @@ def teardown_function() -> None:
     get_settings.cache_clear()
 
 
+@pytest.mark.skipif(
+    not (ROOT / "recorded/stress-lisbon.json").is_file(),
+    reason="recorded fixture is private",
+)
 def test_recorded_propose_never_rate_limited():
     get_settings.cache_clear()
     with patch(
@@ -35,6 +41,18 @@ def test_recorded_propose_never_rate_limited():
             )
             assert res.status_code == 200, res.text
             assert res.json()["mode"] == "recorded"
+
+
+def test_missing_recorded_fixture_returns_503(tmp_path: Path):
+    get_settings.cache_clear()
+    with patch("app.recorded.ROOT", tmp_path):
+        client = TestClient(app)
+        res = client.post(
+            "/api/propose",
+            json={"preset_id": "stress-lisbon-recorded", "force_live": False},
+        )
+    assert res.status_code == 503
+    assert "live preset" in res.json()["detail"].lower()
 
 
 def test_live_stress_hits_429_after_minute_cap():

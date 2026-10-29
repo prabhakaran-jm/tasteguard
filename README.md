@@ -9,7 +9,6 @@ in-city dinner pool.
 | **Live demo** | https://tasteguard-jew5ozur6q-uc.a.run.app |
 | **Source** | https://github.com/prabhakaran-jm/tasteguard |
 | **License** | MIT |
-| **Rollback tag** | `pre-polish-2026-10-29` (Cloud Run was `tasteguard-00007-9sq` before this polish) |
 
 > Affinity cutoffs are **product policy** showing agreement with Qloo’s
 > benchmark — not an official Qloo recommendation.
@@ -47,7 +46,7 @@ REWRITE / UNKNOWN; Gemini may only pick closed-set pool IDs on repair.
 Named venues and affinity scores stay in the live UI / Devpost screenshots —
 not republished here.
 
-**Automated tests:** `33` passed (`pytest`) as of this polish pass.
+**Automated tests:** `37` passed (`pytest`) as of this pass.
 
 ## Limitations
 
@@ -55,11 +54,14 @@ not republished here.
 - The ≥40% anchor percentile (±5% borderline band) is **product policy**, not an
   official Qloo recommendation.
 - Stress presets use an **injected test list** so catches are reproducible.
+- The recorded fixture is private (Qloo hackathon data terms). A fresh clone
+  without the local file gets HTTP 503 on the recorded preset; use a live preset.
 - Agent tools are available at `/mcp/sse` (evaluate / repair / list presets) —
   not a full travel agent.
-- Live HTTP calls to propose / evaluate / repair are rate-limited per client IP
-  (generous; recorded path unlimited). In-process counters; with 2 Cloud Run
-  instances the effective ceiling is roughly 2×.
+- Live HTTP propose / evaluate / repair are rate-limited per client IP (generous;
+  recorded path unlimited). MCP evaluate/repair share one bucket (`mcp:all`) and
+  the same daily cap. In-process counters; with 2 Cloud Run instances the
+  effective ceiling is roughly 2×.
 
 ## Privacy
 
@@ -149,7 +151,8 @@ terraform output service_url
 Use a **unique image tag** (not `:latest`) so Terraform creates a new revision.
 Secrets live in `infra/secrets.auto.tfvars` (gitignored) → Secret Manager.
 
-Rollback traffic to the pre-polish revision if needed:
+Rollback tag: `pre-polish-2026-10-29` (Cloud Run was `tasteguard-00007-9sq`
+before the presentation polish). Rollback traffic if needed:
 
 ```powershell
 gcloud run services update-traffic tasteguard --region=us-central1 --to-revisions=tasteguard-00007-9sq=100
@@ -189,8 +192,9 @@ DNS-rebinding Host checks are off by default so Cloud Run’s `*.run.app` Host w
 (otherwise the SDK returns `421 Invalid Host header`). Optional: set
 `MCP_ALLOWED_HOSTS` to a comma-separated allowlist to re-enable checks.
 
-Recorded fixtures under `recorded/` are captured from live Qloo runs with
-entity IDs scrubbed for the public repo.
+The recorded fixture is captured privately from a live Qloo run and is not
+distributed in this repo (Qloo hackathon data terms). On a fresh clone the
+recorded preset returns 503; live presets work with your own keys.
 
 ## License
 
