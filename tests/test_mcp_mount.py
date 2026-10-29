@@ -26,3 +26,10 @@ def test_api_still_reachable_with_mcp_mounted():
     res = client.get("/api/health")
     assert res.status_code == 200
     assert "qloo_key" in res.json()
+
+
+def test_mcp_transport_security_allows_cloud_run_hosts():
+    """Regression: default FastMCP localhost Host allowlist → 421 on *.run.app."""
+    settings = mcp.settings.transport_security
+    assert settings is not None
+    assert settings.enable_dns_rebinding_protection is False

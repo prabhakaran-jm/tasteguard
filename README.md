@@ -132,6 +132,10 @@ Example Cursor / Claude Desktop remote server entry:
 
 Tools wrap the same `TasteGuardService` as the HTTP API (Qloo evaluate + closed-set repair).
 
+DNS-rebinding Host checks are off by default so Cloud Run’s `*.run.app` Host works
+(otherwise the SDK returns `421 Invalid Host header`). Optional: set
+`MCP_ALLOWED_HOSTS` to a comma-separated allowlist to re-enable checks.
+
 Recorded fixtures under `recorded/` are captured from live Qloo runs with
 entity IDs scrubbed for the public repo.
 

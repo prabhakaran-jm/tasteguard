@@ -5,14 +5,42 @@ Mounted at ``/mcp`` → SSE endpoint ``/mcp/sse`` for agent clients.
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 
 from app.geo import LatLng
 from app.models import CandidateInput, EvaluateRequest, ItemVerdict
 from app.presets import list_presets
 from app.service import TasteGuardService
+
+
+def _transport_security() -> TransportSecuritySettings:
+    """Cloud Run Host headers are not localhost — avoid 421 Invalid Host header.
+
+    FastMCP defaults ``host=127.0.0.1``, which auto-enables DNS-rebinding
+    protection with localhost-only allowlists. Behind Cloud Run that rejects
+    ``*.run.app`` with HTTP 421. Prefer ``MCP_ALLOWED_HOSTS`` (comma-separated);
+    otherwise disable rebinding checks (TLS + Cloud Run edge are the boundary).
+    """
+    local = [
+        "127.0.0.1",
+        "127.0.0.1:*",
+        "localhost",
+        "localhost:*",
+        "testserver",
+    ]
+    raw = os.environ.get("MCP_ALLOWED_HOSTS", "").strip()
+    if raw:
+        hosts = [h.strip() for h in raw.split(",") if h.strip()] + local
+        return TransportSecuritySettings(
+            enable_dns_rebinding_protection=True,
+            allowed_hosts=hosts,
+        )
+    return TransportSecuritySettings(enable_dns_rebinding_protection=False)
+
 
 mcp = FastMCP(
     "TasteGuard",
@@ -21,6 +49,7 @@ mcp = FastMCP(
         "Qloo (resolve + taste affinity + explainability), then closed-set repair "
         "from a dinner alternative pool. PASS requires every slot ALLOW."
     ),
+    transport_security=_transport_security(),
 )
 
 
