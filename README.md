@@ -46,7 +46,7 @@ REWRITE / UNKNOWN; Gemini may only pick closed-set pool IDs on repair.
 Named venues and affinity scores stay in the live UI / Devpost screenshots —
 not republished here.
 
-**Automated tests:** `51` passed (`pytest`) as of this pass.
+**Automated tests:** `54` passed (`pytest`) as of this pass.
 
 ## Limitations
 

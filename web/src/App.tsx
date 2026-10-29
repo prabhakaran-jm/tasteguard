@@ -359,7 +359,11 @@ export default function App() {
             </div>
           ) : null}
 
-          {evalResult ? (
+          {evalResult &&
+          stageBusy !== 'repair' &&
+          (repairFinal != null ||
+            evalResult.policy_verdict !== 'FAIL' ||
+            !running) ? (
             <OutcomeSummary
               initial={evalResult}
               final={repairFinal}

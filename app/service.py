@@ -34,19 +34,56 @@ def _join_messages(parts: list[str]) -> str | None:
 
 
 def _banner_reason(candidate: ScoredCandidate) -> str:
-    """Pick the most informative supported reason for the FAIL/PASS banner."""
+    """Pick FAIL/PASS banner text by failure type (never fabricate).
+
+    Priority: far/wrong-city location → taste cutoff → unscored → category.
+    """
     reasons = list(candidate.reasons or [])
     if not reasons:
         return "see item evidence"
-    for reason in reasons:
-        low = reason.lower()
-        if "km away" in low or "claimed" in low or "wrong" in low:
-            return reason
-    if candidate.evidence == EvidenceState.MISMATCH and candidate.distance_km is not None:
+
+    def pick(*needles: str) -> str | None:
+        for reason in reasons:
+            low = reason.lower()
+            if any(n in low for n in needles):
+                return reason
+        return None
+
+    # 1. Far / claimed wrong-city ("km away" — not "within X km" category lines).
+    loc = pick("km away", "claimed ")
+    if loc:
+        return loc
+    in_city = pick("no in-city name match")
+    if in_city and not pick("not restaurant-like", "category"):
+        return in_city
+
+    # 2. Taste cutoff / borderline
+    taste = pick("beats ", "needs ", "borderline taste", "% of in-city")
+    if taste:
+        return taste
+
+    # 3. Unscored / no affinity
+    unscored = pick("no taste score", "unscored")
+    if unscored:
+        return unscored
+
+    # 4. Category (deli / non-restaurant)
+    category = pick("not restaurant-like", "category")
+    if category:
+        return category
+
+    # Far mismatch only when distance is clearly beyond near radius and not category.
+    near = float(getattr(get_settings(), "near_radius_km", 15.0) or 15.0)
+    if (
+        candidate.evidence == EvidenceState.MISMATCH
+        and candidate.distance_km is not None
+        and candidate.distance_km > near
+    ):
         dist = candidate.distance_km
         dist_txt = f"{dist:.0f}" if dist >= 100 else f"{dist:.1f}"
         place = candidate.matched_name or "matched place"
         return f"wrong city / far match ({place}, {dist_txt} km)"
+
     return reasons[0]
 
 
