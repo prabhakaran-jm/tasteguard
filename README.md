@@ -1,152 +1,139 @@
 # TasteGuard
 
-Cultural quality gate for travel, dining, and hotel concierge agents.
+**A cultural firewall for place agents** — verify Gemini restaurant picks against
+[Qloo](https://qloo.com)’s taste graph, then repair weak lists from a closed
+in-city dinner pool.
 
-AI agents can recommend a restaurant in the wrong city or one that completely
-misses your tastes, without explaining why. **TasteGuard** verifies suggestions
-against [Qloo](https://qloo.com)’s taste graph, explains affinity contributions,
-and repairs weak recommendations using trusted in-city alternatives.
+| | |
+|---|---|
+| **Live demo** | https://tasteguard-jew5ozur6q-uc.a.run.app |
+| **Source** | https://github.com/prabhakaran-jm/tasteguard |
+| **License** | MIT |
 
-> Affinity cutoffs used by this project are **product policy**, not an official
-> Qloo recommendation.
+> Affinity cutoffs are **product policy** showing agreement with Qloo’s
+> benchmark — not an official Qloo recommendation.
 
-## Status
+## What it does
 
-Steps 1–5 (CLI evaluate + Gemini closed-set repair) are in. Step 6 adds a
-staged FastAPI JSON API and a Vite/React demo SPA (propose → evaluate → repair).
+1. **Propose** — Live presets call Gemini (no tools) for a place list. Stress
+   presets use an **injected test list** (not Gemini) so wrong-city and invented
+   names are reproducible for judges.
+2. **Evaluate** — Qloo Search resolves each place (in-city first, distance +
+   category gates). Insights scores affinity vs a city-specific restaurant
+   anchor set with `feature.explainability`.
+3. **Repair** — On FAIL, Gemini may only pick `entity_id`s from a pre-validated
+   dinner alternative pool (max 3 rounds). Invalid Gemini picks fall back to
+   top-affinity pool items. ALLOW originals are kept; only rewrite/unknown slots
+   are replaced. **PASS requires exactly N ALLOW restaurants.**
 
-## Setup (local)
+## Try the demo (judges)
+
+1. Open the [live demo](https://tasteguard-jew5ozur6q-uc.a.run.app).
+2. Leave the default **Stress test · Lisbon (recorded)** and press
+   **Play recorded run** (~1s) — FAIL with Paris/Cascais/invented catches, then
+   PASS after one closed-set repair.
+3. Optionally **Run live** on **Stress test · Lisbon (live Qloo)** (~15–30s) for
+   the same inject list against live Qloo.
+4. NYC live is optional and slower (~30–45s); watch the step labels.
+
+## Taste policy
+
+An item is **ALLOW** when it beats **≥40%** of the in-city restaurant anchor set
+(±5% borderline band). Categories must look like dinner restaurants (not
+café-/bar-only). Wrong-city matches become **REWRITE**; unresolved names become
+**UNVERIFIED** / unscored. Incomplete repaired lists never PASS.
+
+## Stack
+
+- Python / FastAPI — resolve, score, repair
+- FastMCP (`mcp.server.fastmcp`) — agent tools at `/mcp/sse`
+- Vite / React — staged propose → evaluate → repair UI
+- Gemini — unguarded propose (live) + closed-set repair picks
+- Qloo Search + Insights (`feature.explainability`)
+- Cloud Run + Terraform + Artifact Registry
+
+## Local setup
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\activate
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 copy .env.example .env
-# Edit .env and set QLOO_API_KEY (and later GEMINI_API_KEY)
-```
+# Set QLOO_API_KEY and GEMINI_API_KEY
 
-## Run Day-1 Qloo probes
-
-Requires a valid hackathon key in `.env` (`QLOO_API_KEY`).  
-Uses `https://hackathon.api.qloo.com` with the `X-Api-Key` header.
-
-```powershell
-.\.venv\Scripts\activate
-python probes\run_probes.py
-```
-
-Writes `probes/probe_report.json` (gitignored). Review the console summary and the JSON before locking any scoring policy.
-
-**Search note:** `/search` uses `types=` (not `filter.type`). Location filters must be `lat,lon`, not a city name.
-
-## CLI evaluate (Step 4)
-
-```powershell
-.\.venv\Scripts\activate
-python -m app evaluate -c "Cervejaria Ramiro" -c "The French Laundry" -s artist:Radiohead
-python -m app evaluate --json -c "Cervejaria Ramiro" -c "The French Laundry"
-# Equivalent: python -m app.cli evaluate ...
-```
-
-Prints `evaluation_status` (`completed` / `unavailable` / `partial`) and `policy_verdict` (`PASS` / `FAIL` only when completed).
-
-**Taste policy (product policy, not an official Qloo cutoff):** an item is `ALLOW` when it beats **≥40%** of the in-city restaurant anchor set (with a ±5% borderline band). `PASS` requires exactly N `ALLOW` restaurants — unknowns and rewrites fail closed.
-
-## Gemini demo + closed-set repair (Step 5)
-
-Requires `GEMINI_API_KEY` and `QLOO_API_KEY` in `.env`.
-
-```powershell
-python -m app demo -s artist:Radiohead
-python -m app demo --json -s artist:Radiohead --max-rounds 3
-```
-
-Flow:
-
-1. **Propose:** live presets call Gemini (no tools) for a structured place list. Stress presets use an **injected test list** (not Gemini) so wrong-city catches are reproducible.
-2. **TasteGuard evaluate** → Qloo resolve + affinity vs city anchors → allow/rewrite/unknown + PASS/FAIL
-3. **Closed-set repair** (max 3): Gemini may only pick Qloo alternative `entity_id`s from the FAIL pool (function-style closed set). If Gemini returns invalid IDs, the system falls back to top-affinity pool picks, then re-evaluates.
-
-## Demo UI (Step 6)
-
-Staged API (not one long spinner):
-
-1. `POST /api/propose` — Gemini unguarded list  
-2. `POST /api/evaluate` — TasteGuard verdict + `evaluation_id` (cached ~5 min)  
-3. `POST /api/repair` — closed-set repair from that cached FAIL (history on this response only)
-
-Every demo JSON response includes `mode` (`live` today; `recorded` on Day 3).  
-`unavailable` / `partial` / HTTP errors must never be styled like PASS in the UI.
-
-### Local (iterate)
-
-```powershell
-# terminal A — API
-.\.venv\Scripts\activate
 $env:PYTHONPATH='.'
 uvicorn app.main:app --reload --port 8000
+```
 
-# terminal B — Vite (proxies /api → :8000; no CORS middleware)
+SPA (dev):
+
+```powershell
 cd web
 npm install
 npm run dev
 ```
 
-Open the Vite URL (usually `http://127.0.0.1:5173`).
-
-### Local (prod-shaped: one process)
+Prod-shaped (API serves `web/dist`):
 
 ```powershell
-cd web
-npm run build
-cd ..
-.\.venv\Scripts\activate
+cd web; npm run build; cd ..
 $env:PYTHONPATH='.'
 uvicorn app.main:app --port 8000
 ```
 
-Open `http://127.0.0.1:8000` — FastAPI serves `web/dist` after `/api/*`.
-
-### Cloud Run (Step 7 — Terraform)
-
-Project: `tasteguard-qloo-2026`. Image build uses **Cloud Build** (no local Docker
-required). SPA must be built first (`web/dist` is gitignored).
+CLI:
 
 ```powershell
-# 1) SPA
-cd web
-npm run build
-cd ..
+python -m app evaluate -c "Cervejaria Ramiro" -c "The French Laundry" -s artist:Radiohead
+python -m app demo -s artist:Radiohead
+```
 
-# 2) Secrets file (gitignored) — paste keys from .env, never commit
-@"
-qloo_api_key   = `"YOUR_QLOO_KEY`"
-gemini_api_key = `"YOUR_GEMINI_KEY`"
-"@ | Set-Content infra\secrets.auto.tfvars
+## Deploy (Cloud Run)
 
-# 3) Bootstrap APIs + Artifact Registry (+ secrets)
-cd infra
-terraform init
-terraform apply
-
-# 4) Build/push image
-$IMAGE = "us-central1-docker.pkg.dev/tasteguard-qloo-2026/tasteguard/tasteguard:latest"
-cd ..
+```powershell
+cd web; npm run build; cd ..
+$TAG = Get-Date -Format "yyyyMMdd-HHmmss"
+$IMAGE = "us-central1-docker.pkg.dev/tasteguard-qloo-2026/tasteguard/tasteguard:$TAG"
 gcloud builds submit --config=cloudbuild.yaml --substitutions=_IMAGE=$IMAGE --project=tasteguard-qloo-2026
-
-# 5) Deploy Cloud Run
 cd infra
 terraform apply -var="image=$IMAGE"
 terraform output service_url
 ```
 
-Infra lives in [`infra/`](infra/). Runtime secrets come from Secret Manager; the
-service is public (`roles/run.invoker` for `allUsers`) with `min_instances = 1`.
+Use a **unique image tag** (not `:latest`) so Terraform creates a new revision.
+Secrets live in `infra/secrets.auto.tfvars` (gitignored) → Secret Manager.
 
-### React timebox (Day 2)
+## API (staged)
 
-If the SPA is not rendering live API data by **15:00 local, Wed Oct 29**, drop to
-Jinja templates and keep the same `web/src/styles.css` (shared stylesheet).
+- `GET /api/health`
+- `GET /api/presets`
+- `POST /api/propose` → `POST /api/evaluate` → `POST /api/repair`
+
+## MCP (agent tool surface)
+
+Thin FastMCP (official `mcp.server.fastmcp`) mounted at **`/mcp`**.
+
+| | |
+|---|---|
+| **SSE URL** | `https://tasteguard-jew5ozur6q-uc.a.run.app/mcp/sse` |
+| **Tools** | `tasteguard_list_presets`, `tasteguard_evaluate`, `tasteguard_repair` |
+
+Example Cursor / Claude Desktop remote server entry:
+
+```json
+{
+  "mcpServers": {
+    "tasteguard": {
+      "url": "https://tasteguard-jew5ozur6q-uc.a.run.app/mcp/sse"
+    }
+  }
+}
+```
+
+Tools wrap the same `TasteGuardService` as the HTTP API (Qloo evaluate + closed-set repair).
+
+Recorded fixtures under `recorded/` are captured from live Qloo runs with
+entity IDs scrubbed for the public repo.
 
 ## License
 
