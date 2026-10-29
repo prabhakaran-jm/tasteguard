@@ -9,9 +9,62 @@ in-city dinner pool.
 | **Live demo** | https://tasteguard-jew5ozur6q-uc.a.run.app |
 | **Source** | https://github.com/prabhakaran-jm/tasteguard |
 | **License** | MIT |
+| **Rollback tag** | `pre-polish-2026-10-29` (Cloud Run was `tasteguard-00007-9sq` before this polish) |
 
 > Affinity cutoffs are **product policy** showing agreement with Qloo’s
 > benchmark — not an official Qloo recommendation.
+
+## Try it in 2 minutes (judges)
+
+1. Open the [live demo](https://tasteguard-jew5ozur6q-uc.a.run.app).
+2. Leave the default **Stress test · Lisbon (recorded) — shows the catch**.
+3. Press **Play recorded run** (~1s) — FAIL on the injected list (wrong-city ×2,
+   unresolved ×1), then closed-set repair to **PASS**.
+4. Optionally switch to **Stress test · Lisbon (live Qloo)** and press
+   **Run live** (~15–30s). Live results may vary slightly from the recorded
+   replay as Qloo data changes; the inject list is the same controlled stress
+   set (not Gemini mistakes).
+5. NYC live is optional and slower (~30–45s).
+
+## What makes it Qloo-powered
+
+| Qloo surface | What TasteGuard sends | What the judge sees |
+|---|---|---|
+| `/search` | Candidate names (+ city bias) | Places resolve (or fail) with distance / mismatch |
+| `/v2/insights` + `filter.results.entities` | Verified entity IDs vs city restaurant anchors + taste seeds | Per-item affinity / percentile vs local references |
+| Insights `feature.explainability` | Same Insights call | “Strongest contributing interest: …” on cards |
+
+Search resolves; Insights scores taste; TasteGuard policy decides ALLOW /
+REWRITE / UNKNOWN; Gemini may only pick closed-set pool IDs on repair.
+
+## Observed results (illustrative)
+
+| Run | Observed (counts only) | Notes |
+|---|---|---|
+| Lisbon stress · recorded · 2026-10-29 | 3 caught (wrong city ×2, unresolved ×1), 3 replaced, **PASS in 1 round** | Default demo; no live Qloo calls |
+| Lisbon stress · live | Same inject shape; timing typically ~15–30s | **Qloo results may change** |
+
+Named venues and affinity scores stay in the live UI / Devpost screenshots —
+not republished here.
+
+**Automated tests:** `33` passed (`pytest`) as of this polish pass.
+
+## Limitations
+
+- Qloo verification does **not** mean a place is open right now.
+- The ≥40% anchor percentile (±5% borderline band) is **product policy**, not an
+  official Qloo recommendation.
+- Stress presets use an **injected test list** so catches are reproducible.
+- Agent tools are available at `/mcp/sse` (evaluate / repair / list presets) —
+  not a full travel agent.
+- Live HTTP calls to propose / evaluate / repair are rate-limited per client IP
+  (generous; recorded path unlimited). In-process counters; with 2 Cloud Run
+  instances the effective ceiling is roughly 2×.
+
+## Privacy
+
+Qloo receives only taste seeds, candidate place names, and the city — never
+user identifiers, accounts, or browser cookies.
 
 ## What it does
 
@@ -26,22 +79,15 @@ in-city dinner pool.
    top-affinity pool items. ALLOW originals are kept; only rewrite/unknown slots
    are replaced. **PASS requires exactly N ALLOW restaurants.**
 
-## Try the demo (judges)
-
-1. Open the [live demo](https://tasteguard-jew5ozur6q-uc.a.run.app).
-2. Leave the default **Stress test · Lisbon (recorded)** and press
-   **Play recorded run** (~1s) — FAIL with Paris/Cascais/invented catches, then
-   PASS after one closed-set repair.
-3. Optionally **Run live** on **Stress test · Lisbon (live Qloo)** (~15–30s) for
-   the same inject list against live Qloo.
-4. NYC live is optional and slower (~30–45s); watch the step labels.
-
 ## Taste policy
 
 An item is **ALLOW** when it beats **≥40%** of the in-city restaurant anchor set
 (±5% borderline band). Categories must look like dinner restaurants (not
 café-/bar-only). Wrong-city matches become **REWRITE**; unresolved names become
 **UNVERIFIED** / unscored. Incomplete repaired lists never PASS.
+
+There is **no** separate absolute affinity floor in the scorer; borderline
+ALLOWs are explained on the card when the ±5% band applies.
 
 ## Stack
 
@@ -103,11 +149,18 @@ terraform output service_url
 Use a **unique image tag** (not `:latest`) so Terraform creates a new revision.
 Secrets live in `infra/secrets.auto.tfvars` (gitignored) → Secret Manager.
 
+Rollback traffic to the pre-polish revision if needed:
+
+```powershell
+gcloud run services update-traffic tasteguard --region=us-central1 --to-revisions=tasteguard-00007-9sq=100
+```
+
 ## API (staged)
 
-- `GET /api/health`
-- `GET /api/presets`
+- `GET /api/health` — unlimited
+- `GET /api/presets` — unlimited
 - `POST /api/propose` → `POST /api/evaluate` → `POST /api/repair`
+  (live paths rate-limited; recorded preset unlimited)
 
 ## MCP (agent tool surface)
 

@@ -56,11 +56,23 @@ function plainEvidence(s: Scored, showExplainability: boolean, city: string): st
   if (s.affinity != null && !Number.isNaN(s.affinity)) {
     parts.push(`Taste fit ${Math.round(s.affinity * 100)}`)
   }
+  const borderlineReason = s.reasons?.find((r) => /Borderline/i.test(r))
   if (s.anchor_percentile != null && !Number.isNaN(s.anchor_percentile)) {
     const beats = Math.round(s.anchor_percentile * 100)
-    parts.push(
-      `Better taste match than ${beats}% of ${city} reference restaurants (needs 40%)`,
-    )
+    if (s.item_verdict === 'allow' && borderlineReason) {
+      // Borderline band ALLOW — do not imply the item failed the 40% cutoff.
+      parts.push(
+        `Better taste match than ${beats}% of ${city} reference restaurants`,
+      )
+    } else if (s.item_verdict === 'allow') {
+      parts.push(
+        `Better taste match than ${beats}% of ${city} reference restaurants`,
+      )
+    } else {
+      parts.push(
+        `Better taste match than ${beats}% of ${city} reference restaurants (needs 40%)`,
+      )
+    }
   }
   if (
     showExplainability &&
@@ -70,8 +82,8 @@ function plainEvidence(s: Scored, showExplainability: boolean, city: string): st
     parts.push(s.explainability_summary)
   } else if (s.reasons && s.reasons[0] && s.evidence === 'mismatch') {
     parts.push(s.reasons[0])
-  } else if (s.reasons && s.reasons.some((r) => /Borderline/i.test(r))) {
-    parts.push(s.reasons.find((r) => /Borderline/i.test(r)) || '')
+  } else if (borderlineReason) {
+    parts.push(borderlineReason)
   } else if (s.reasons && s.reasons.some((r) => r.includes('no taste score'))) {
     parts.push(s.reasons.find((r) => r.includes('no taste score')) || '')
   }

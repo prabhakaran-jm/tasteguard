@@ -128,6 +128,15 @@ select {
   background: rgba(196, 163, 90, 0.15);
 }
 
+.guide-line {
+  color: var(--brass-hot);
+  font-size: 0.88rem;
+  margin: -0.5rem 0 1rem;
+  max-width: min(36rem, 100%);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 .preset-blurb {
   color: var(--mist);
   font-size: 0.92rem;
@@ -136,6 +145,91 @@ select {
   line-height: 1.4;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+@media (max-width: 420px) {
+  .hero {
+    min-height: 100svh;
+    padding: 1.25rem 1rem 1.5rem;
+  }
+
+  .brand {
+    font-size: clamp(2.4rem, 14vw, 3.2rem);
+    margin-bottom: 0.65rem;
+  }
+
+  .promise {
+    margin-bottom: 0.85rem;
+    font-size: 1rem;
+  }
+
+  .guide-line {
+    font-size: 0.8rem;
+    margin: 0 0 0.75rem;
+  }
+
+  .preset-blurb {
+    font-size: 0.82rem;
+    margin-bottom: 0.85rem;
+  }
+}
+
+.outcome-summary {
+  margin: 0 0 1.25rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(196, 163, 90, 0.35);
+  background: rgba(20, 32, 24, 0.65);
+}
+
+.outcome-summary.pass {
+  border-color: rgba(47, 107, 69, 0.55);
+}
+
+.outcome-summary.fail {
+  border-color: rgba(163, 59, 45, 0.45);
+}
+
+.outcome-kicker {
+  margin: 0 0 0.65rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+
+.outcome-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+}
+
+.outcome-stats div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.outcome-stats strong {
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+.outcome-stats span {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.outcome-verdict {
+  margin: 0.75rem 0 0;
+  color: var(--mist);
+  font-size: 0.95rem;
+}
+
+.provenance-line {
+  margin: 0 0 1rem;
+  font-size: 0.82rem;
+  color: #9aab9e;
 }
 
 .preset-select {

@@ -1,7 +1,8 @@
 {
   "preset_id": "stress-lisbon-recorded",
   "mode": "recorded",
-  "note": "Captured from a live stress-lisbon-live PASS. Entity IDs scrubbed; affinities/percentiles from that live Qloo run. Injected list is not Gemini.",
+  "captured_at": "2026-10-29",
+  "note": "Captured from a live stress-lisbon-live PASS. Entity IDs scrubbed; affinities/percentiles from that live Qloo run. Injected list is not Gemini. Place names in this fixture are for replay only — do not republish scored Qloo rows in the README.",
   "propose": {
     "candidates": [
       {

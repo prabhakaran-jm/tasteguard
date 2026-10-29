@@ -32,8 +32,12 @@ class Settings(BaseSettings):
     # Soft band: within this of the cutoff → ALLOW with a borderline note.
     allow_borderline_band: float = 0.05
 
+    # Live propose/evaluate/repair only (recorded + /health + /presets unlimited).
+    # ~30 calls/min ≈ 10 full runs; do not set lower — one live run is 3 calls.
+    # With max-instances=2, effective ceiling is up to ~2× (per-process counters).
     daily_call_cap: int = 200
-    per_ip_hourly_cap: int = 30
+    per_ip_minute_cap: int = 30
+    per_ip_hourly_cap: int = 30  # retained for env compatibility; minute cap is enforced
     regenerate_cooldown_seconds: int = 20
     allow_live: bool = True
 

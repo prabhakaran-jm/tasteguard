@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator
 
 from app import eval_cache
@@ -10,6 +10,7 @@ from app.config import get_settings
 from app.gemini_agent import GeminiConcierge
 from app.models import CandidateInput, EvaluateRequest, EvaluationResult
 from app.presets import get_preset, inject_candidates, list_presets, preset_center
+from app.rate_limit import enforce_live_rate_limit
 from app.recorded import load_fixture
 from app.service import TasteGuardService
 
@@ -42,6 +43,7 @@ class ProposeResponse(ModeMixin):
     persona: str
     candidates: list[CandidateInput]
     blurb: str | None = None
+    captured_at: str | None = None
 
 
 class EvaluateBody(BaseModel):
@@ -76,6 +78,7 @@ class EvaluateBody(BaseModel):
 class EvaluateResponse(ModeMixin):
     evaluation_id: str
     result: EvaluationResult
+    captured_at: str | None = None
 
 
 class RepairBody(BaseModel):
@@ -137,7 +140,7 @@ def presets() -> dict[str, Any]:
 
 
 @router.post("/propose", response_model=ProposeResponse)
-async def propose(body: ProposeRequest) -> ProposeResponse:
+async def propose(request: Request, body: ProposeRequest) -> ProposeResponse:
     preset = get_preset(body.preset_id)
     if not preset:
         raise HTTPException(status_code=404, detail="Unknown preset_id")
@@ -146,7 +149,11 @@ async def propose(body: ProposeRequest) -> ProposeResponse:
         fixture = load_fixture(str(preset["recorded_path"]))
         raw = fixture["propose"]["candidates"]
         candidates = [CandidateInput.model_validate(c) for c in raw][:MAX_CANDIDATES]
+        captured = fixture.get("captured_at")
+        captured_at = str(captured) if captured else None
         # force_live keeps the catch card but scores it with live Qloo.
+        if body.force_live:
+            enforce_live_rate_limit(request)
         return ProposeResponse(
             mode="live" if body.force_live else "recorded",
             preset_id=body.preset_id,
@@ -154,7 +161,11 @@ async def propose(body: ProposeRequest) -> ProposeResponse:
             persona=str(preset["persona"]),
             candidates=candidates,
             blurb=preset.get("blurb"),
+            captured_at=captured_at,
         )
+
+    # Live paths (stress inject or Gemini) spend quota.
+    enforce_live_rate_limit(request)
 
     if preset.get("kind") == "stress":
         candidates = inject_candidates(preset)[:MAX_CANDIDATES]
@@ -200,7 +211,7 @@ async def propose(body: ProposeRequest) -> ProposeResponse:
 
 
 @router.post("/evaluate", response_model=EvaluateResponse)
-async def evaluate(body: EvaluateBody) -> EvaluateResponse:
+async def evaluate(request: Request, body: EvaluateBody) -> EvaluateResponse:
     preset = get_preset(body.preset_id)
     if not preset:
         raise HTTPException(status_code=404, detail="Unknown preset_id")
@@ -208,14 +219,14 @@ async def evaluate(body: EvaluateBody) -> EvaluateResponse:
     if _use_recorded(preset, body.force_live):
         fixture = load_fixture(str(preset["recorded_path"]))
         result = EvaluationResult.model_validate(fixture["evaluate"])
-        request = _build_request(
+        eval_request = _build_request(
             preset,
             body.candidates,
             expected_count=len(body.candidates),
         )
         eid = eval_cache.put(
             result,
-            request,
+            eval_request,
             persona_description=str(preset["persona"]),
         )
         # Tag so repair can short-circuit to fixture
@@ -225,30 +236,38 @@ async def evaluate(body: EvaluateBody) -> EvaluateResponse:
                 **cached.result.notes,
                 "recorded_path": preset["recorded_path"],
             }
-        return EvaluateResponse(mode="recorded", evaluation_id=eid, result=result)
+        captured = fixture.get("captured_at")
+        return EvaluateResponse(
+            mode="recorded",
+            evaluation_id=eid,
+            result=result,
+            captured_at=str(captured) if captured else None,
+        )
+
+    enforce_live_rate_limit(request)
 
     settings = get_settings()
     if not settings.qloo_api_key:
         raise HTTPException(status_code=503, detail="QLOO_API_KEY not configured")
-    request = _build_request(
+    eval_request = _build_request(
         preset,
         body.candidates,
         expected_count=len(body.candidates),
     )
     try:
-        result = await TasteGuardService(settings).evaluate(request)
+        result = await TasteGuardService(settings).evaluate(eval_request)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=502, detail=f"Evaluate failed: {exc}") from exc
     eid = eval_cache.put(
         result,
-        request,
+        eval_request,
         persona_description=str(preset["persona"]),
     )
     return EvaluateResponse(mode="live", evaluation_id=eid, result=result)
 
 
 @router.post("/repair", response_model=RepairResponse)
-async def repair(body: RepairBody) -> RepairResponse:
+async def repair(request: Request, body: RepairBody) -> RepairResponse:
     cached = eval_cache.get(body.evaluation_id)
     if cached is None:
         raise HTTPException(
@@ -262,6 +281,8 @@ async def repair(body: RepairBody) -> RepairResponse:
         final = EvaluationResult.model_validate(fixture["repair"]["final"])
         history = [cached.result, final]
         return RepairResponse(mode="recorded", final=final, history=history)
+
+    enforce_live_rate_limit(request)
 
     rounds = int(body.max_rounds)  # already clamped by Field(le=MAX_ROUNDS)
     settings = get_settings()

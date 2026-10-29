@@ -36,6 +36,11 @@ export function Hero({
           A cultural firewall for place agents — verify Gemini picks against
           Qloo taste, then repair from a closed restaurant pool.
         </p>
+        <p className="guide-line">
+          Recommended demo: Lisbon stress (recorded) → Play recorded run. Qloo
+          Search resolves places; Insights scores taste; TasteGuard policy +
+          Gemini closed-set repair.
+        </p>
         {blurb || selected?.blurb ? (
           <p className="preset-blurb">{blurb || selected?.blurb}</p>
         ) : null}

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Hero } from './components/Hero'
+import { OutcomeSummary } from './components/OutcomeSummary'
 import { StageCards } from './components/StageCards'
 import { StatusCard, kindFromEvaluation } from './components/StatusCard'
 
@@ -40,6 +41,9 @@ type EvaluationResult = {
   notes?: Record<string, unknown>
 }
 
+const BUSY_HINT =
+  'Live demo is busy, try the recorded run (or wait a minute and retry).'
+
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
@@ -53,6 +57,10 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
     } catch {
       /* keep statusText */
     }
+    if (res.status === 429) {
+      const msg = typeof detail === 'string' ? detail : BUSY_HINT
+      throw new Error(msg.includes('recorded') ? msg : BUSY_HINT)
+    }
     throw new Error(typeof detail === 'string' ? detail : JSON.stringify(detail))
   }
   return res.json() as Promise<T>
@@ -65,6 +73,20 @@ function explanationsMissing(result: EvaluationResult | null): boolean {
       !c.explainability_summary ||
       c.explainability_summary === 'Explanation unavailable',
   )
+}
+
+function formatRunStamp(iso: string): string {
+  try {
+    const d = new Date(iso)
+    return d.toLocaleString(undefined, {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  } catch {
+    return iso
+  }
 }
 
 export default function App() {
@@ -81,6 +103,9 @@ export default function App() {
   const [evalResult, setEvalResult] = useState<EvaluationResult | null>(null)
   const [repairFinal, setRepairFinal] = useState<EvaluationResult | null>(null)
   const [repairHistoryLen, setRepairHistoryLen] = useState(0)
+  const [runFinishedAt, setRunFinishedAt] = useState<string | null>(null)
+  const [elapsedSec, setElapsedSec] = useState<number | null>(null)
+  const [fixtureCapturedAt, setFixtureCapturedAt] = useState<string | null>(null)
 
   const demoRef = useRef<HTMLElement | null>(null)
   const selected = presets.find((p) => p.id === presetId)
@@ -112,19 +137,25 @@ export default function App() {
     setEvalResult(null)
     setRepairFinal(null)
     setRepairHistoryLen(0)
+    setRunFinishedAt(null)
+    setElapsedSec(null)
+    setFixtureCapturedAt(null)
     setStageBusy('propose')
     scrollToDemo()
+    const started = performance.now()
 
     try {
       const propose = await api<{
         mode: string
         candidates: Candidate[]
+        captured_at?: string | null
       }>('/api/propose', {
         method: 'POST',
         body: JSON.stringify({ preset_id: presetId, force_live: forceLive }),
       })
       setMode(propose.mode)
       setProposed(propose.candidates)
+      if (propose.captured_at) setFixtureCapturedAt(propose.captured_at)
       setStageBusy('evaluate')
       scrollToDemo()
 
@@ -132,6 +163,7 @@ export default function App() {
         mode: string
         evaluation_id: string
         result: EvaluationResult
+        captured_at?: string | null
       }>('/api/evaluate', {
         method: 'POST',
         body: JSON.stringify({
@@ -142,6 +174,7 @@ export default function App() {
       })
       setMode(evaluated.mode)
       setEvalResult(evaluated.result)
+      if (evaluated.captured_at) setFixtureCapturedAt(evaluated.captured_at)
 
       if (
         evaluated.result.evaluation_status === 'completed' &&
@@ -160,6 +193,8 @@ export default function App() {
         setRepairFinal(repaired.final)
         setRepairHistoryLen(repaired.history.length)
       }
+      setRunFinishedAt(new Date().toISOString())
+      setElapsedSec(Math.round((performance.now() - started) / 100) / 10)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -176,6 +211,23 @@ export default function App() {
     (repairFinal?.notes?.replaced as string[] | undefined)?.join('; ') ||
     repairFinal?.message ||
     null
+
+  const anchors =
+    repairFinal?.anchor_count ?? evalResult?.anchor_count ?? null
+  const provenanceParts: string[] = []
+  if (mode === 'recorded') {
+    provenanceParts.push('Source: recorded replay')
+    if (fixtureCapturedAt) {
+      provenanceParts.push(`fixture captured ${fixtureCapturedAt}`)
+    }
+  } else {
+    provenanceParts.push('Source: live Qloo')
+    if (anchors != null) provenanceParts.push(`${anchors} anchors`)
+    if (elapsedSec != null) provenanceParts.push(`${elapsedSec}s`)
+  }
+  if (runFinishedAt) {
+    provenanceParts.push(`this run ${formatRunStamp(runFinishedAt)}`)
+  }
 
   return (
     <>
@@ -203,6 +255,9 @@ export default function App() {
               ? ' · Step 3/3 — repairing from closed pool…'
               : null}
           </p>
+          {provenanceParts.length ? (
+            <p className="provenance-line">{provenanceParts.join(' · ')}</p>
+          ) : null}
           {selected ? (
             <p className="persona-line">
               <strong>Who this is for:</strong> {selected.persona}
@@ -242,6 +297,14 @@ export default function App() {
               source={mode === 'recorded' ? 'recorded' : 'live_qloo'}
             />
           </div>
+
+          {evalResult ? (
+            <OutcomeSummary
+              initial={evalResult}
+              final={repairFinal}
+              city={evalResult.city || selected?.city}
+            />
+          ) : null}
 
           {evalResult ? (
             <StatusCard
