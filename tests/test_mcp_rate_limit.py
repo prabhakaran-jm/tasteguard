@@ -60,8 +60,6 @@ def test_mcp_evaluate_respects_daily_cap_before_service():
                 asyncio.run(
                     tasteguard_evaluate(
                         city="Lisbon",
-                        lat=38.7223,
-                        lon=-9.1393,
                         candidates=[{"name": "A Cevicheria"}],
                     )
                 )

@@ -43,11 +43,10 @@ export function OutcomeSummary({ initial, final, city }: Props) {
   return (
     <section
       className={`outcome-summary ${passed ? 'pass' : 'fail'}`}
-      aria-label="Run outcome summary"
+      aria-label="Final outcome summary"
     >
       <p className="outcome-kicker">
-        TasteGuard{city ? ` · ${city}` : ''}
-        {final ? ' · after repair' : ' · first pass'}
+        Final outcome{city ? ` · ${city}` : ''}
       </p>
       <div className="outcome-stats">
         <div>

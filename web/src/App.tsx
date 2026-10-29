@@ -83,6 +83,7 @@ function formatRunStamp(iso: string): string {
       month: 'short',
       hour: '2-digit',
       minute: '2-digit',
+      timeZoneName: 'short',
     })
   } catch {
     return iso
@@ -224,9 +225,9 @@ export default function App() {
     provenanceParts.push('Source: live Qloo')
     if (anchors != null) provenanceParts.push(`${anchors} anchors`)
     if (elapsedSec != null) provenanceParts.push(`${elapsedSec}s`)
-  }
-  if (runFinishedAt) {
-    provenanceParts.push(`this run ${formatRunStamp(runFinishedAt)}`)
+    if (runFinishedAt) {
+      provenanceParts.push(`this run ${formatRunStamp(runFinishedAt)}`)
+    }
   }
 
   return (
@@ -299,29 +300,24 @@ export default function App() {
           </div>
 
           {evalResult ? (
-            <OutcomeSummary
-              initial={evalResult}
-              final={repairFinal}
-              city={evalResult.city || selected?.city}
-            />
-          ) : null}
-
-          {evalResult ? (
-            <StatusCard
-              kind={kindFromEvaluation(
-                evalResult.evaluation_status,
-                evalResult.policy_verdict,
-              )}
-              title={
-                evalResult.evaluation_status === 'completed'
-                  ? evalResult.policy_verdict || 'FAIL'
-                  : evalResult.evaluation_status.toUpperCase()
-              }
-              body={
-                evalResult.message ||
-                `${evalResult.city} · ${evalResult.anchor_count ?? 0} anchors`
-              }
-            />
+            <div className="original-list-block">
+              <h3 className="stage-heading">Original list</h3>
+              <StatusCard
+                kind={kindFromEvaluation(
+                  evalResult.evaluation_status,
+                  evalResult.policy_verdict,
+                )}
+                title={
+                  evalResult.evaluation_status === 'completed'
+                    ? evalResult.policy_verdict || 'FAIL'
+                    : evalResult.evaluation_status.toUpperCase()
+                }
+                body={
+                  evalResult.message ||
+                  `${evalResult.city} · ${evalResult.anchor_count ?? 0} anchors`
+                }
+              />
+            </div>
           ) : null}
 
           {stageBusy === 'repair' ? (
@@ -361,6 +357,14 @@ export default function App() {
                 source={mode === 'recorded' ? 'recorded' : 'live_qloo'}
               />
             </div>
+          ) : null}
+
+          {evalResult ? (
+            <OutcomeSummary
+              initial={evalResult}
+              final={repairFinal}
+              city={evalResult.city || selected?.city}
+            />
           ) : null}
         </main>
       ) : null}

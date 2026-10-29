@@ -58,20 +58,21 @@ function plainEvidence(s: Scored, showExplainability: boolean, city: string): st
   }
   const borderlineReason = s.reasons?.find((r) => /Borderline/i.test(r))
   if (s.anchor_percentile != null && !Number.isNaN(s.anchor_percentile)) {
-    const beats = Math.round(s.anchor_percentile * 100)
-    if (s.item_verdict === 'allow' && borderlineReason) {
-      // Borderline band ALLOW — do not imply the item failed the 40% cutoff.
+    if (s.anchor_percentile >= 0.999) {
       parts.push(
-        `Better taste match than ${beats}% of ${city} reference restaurants`,
-      )
-    } else if (s.item_verdict === 'allow') {
-      parts.push(
-        `Better taste match than ${beats}% of ${city} reference restaurants`,
+        `At or above all scored ${city} reference anchors`,
       )
     } else {
-      parts.push(
-        `Better taste match than ${beats}% of ${city} reference restaurants (needs 40%)`,
-      )
+      const beats = Math.round(s.anchor_percentile * 100)
+      if (s.item_verdict === 'allow') {
+        parts.push(
+          `Better taste match than ${beats}% of ${city} reference restaurants`,
+        )
+      } else {
+        parts.push(
+          `Better taste match than ${beats}% of ${city} reference restaurants (needs 40%)`,
+        )
+      }
     }
   }
   if (
