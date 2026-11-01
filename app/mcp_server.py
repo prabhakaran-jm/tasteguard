@@ -10,6 +10,7 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
+from mcp.types import ToolAnnotations
 
 from app.geo import LatLng
 from app.mcp_coords import resolve_mcp_coords
@@ -139,13 +140,29 @@ def _build_request(
     return request, ignored
 
 
-@mcp.tool()
+# Evaluate/repair call Qloo (and Gemini for repair); live results can change → not idempotent.
+_LIVE_READ = ToolAnnotations(
+    readOnlyHint=True,
+    destructiveHint=False,
+    idempotentHint=False,
+    openWorldHint=True,
+)
+
+
+@mcp.tool(
+    annotations=ToolAnnotations(
+        readOnlyHint=True,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=False,
+    )
+)
 async def tasteguard_list_presets() -> dict[str, Any]:
     """List TasteGuard demo presets (recorded / stress / live) and their cities."""
     return {"presets": list_presets()}
 
 
-@mcp.tool()
+@mcp.tool(annotations=_LIVE_READ)
 async def tasteguard_evaluate(
     city: str,
     candidates: list[dict[str, Any]],
@@ -179,7 +196,7 @@ async def tasteguard_evaluate(
     return _summarize_result(result, client_pins_ignored=ignored)
 
 
-@mcp.tool()
+@mcp.tool(annotations=_LIVE_READ)
 async def tasteguard_repair(
     city: str,
     candidates: list[dict[str, Any]],

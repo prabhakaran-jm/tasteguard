@@ -14,6 +14,15 @@ def test_mcp_tools_registered():
     }
 
 
+def test_mcp_tools_declare_all_hints():
+    for t in mcp._tool_manager.list_tools():
+        a = t.annotations
+        assert a is not None, t.name
+        for hint in ("readOnlyHint", "destructiveHint", "idempotentHint", "openWorldHint"):
+            assert isinstance(getattr(a, hint), bool), (t.name, hint)
+        assert a.readOnlyHint is True and a.destructiveHint is False, t.name
+
+
 def test_mcp_mounted_under_prefix():
     mounts = [r for r in app.routes if isinstance(r, Mount) and r.path == "/mcp"]
     assert len(mounts) == 1
